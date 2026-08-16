@@ -1,4 +1,5 @@
 import './globals.css';
+import Image from 'next/image';
 import AuthNav from '@/components/AuthNav';
 import RequireAuth from '@/components/RequireAuth';
 
@@ -17,9 +18,11 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="min-h-screen bg-stone-50 text-stone-900">
         <header className="border-b border-stone-200 bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-          <a href="/" className="text-xl font-bold text-orange-700">Palengke</a>
+          <a href="/" className="flex items-center">
+            <Image src="/logo-512.png" alt="Palengke" width={140} height={40} priority />
+          </a>
           <nav className="flex gap-4 text-sm items-center">
-            <a href="/new-listing" className="text-stone-600 hover:text-orange-700">Sell</a>
+            <a href="/new-listing" className="text-stone-600 hover:text-green-700">Sell</a>
             <AuthNav />
           </nav>
         </header>
