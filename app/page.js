@@ -1,0 +1,76 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabaseClient';
+import ListingCard from '@/components/ListingCard';
+
+export default function HomePage() {
+  const [listings, setListings] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function load() {
+      setLoading(true);
+
+      const { data: cats } = await supabase.from('categories').select('*').order('id');
+      setCategories(cats || []);
+
+      let query = supabase
+        .from('listings')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (activeCategory) query = query.eq('category_id', activeCategory);
+
+      const { data: rows, error } = await query;
+      if (error) console.error(error);
+      setListings(rows || []);
+      setLoading(false);
+    }
+
+    load();
+  }, [activeCategory]);
+
+  return (
+    <div>
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-stone-200">
+        <button
+          onClick={() => setActiveCategory(null)}
+          className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
+            activeCategory === null ? 'bg-orange-700 text-white' : 'bg-stone-100 text-stone-600'
+          }`}
+        >
+          All
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setActiveCategory(c.id)}
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
+              activeCategory === c.id ? 'bg-orange-700 text-white' : 'bg-stone-100 text-stone-600'
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p className="text-stone-400 text-sm">Loading listings…</p>
+      ) : listings.length === 0 ? (
+        <p className="text-stone-400 text-sm">No listings yet. Be the first to sell something!</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {listings.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
