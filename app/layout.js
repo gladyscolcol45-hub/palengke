@@ -1,5 +1,6 @@
 import './globals.css';
 import AuthNav from '@/components/AuthNav';
+import RequireAuth from '@/components/RequireAuth';
 
 export const metadata = {
   title: 'Palengke',
@@ -22,7 +23,9 @@ export default function RootLayout({ children }) {
             <AuthNav />
           </nav>
         </header>
-        <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+        <main className="max-w-5xl mx-auto px-4 py-6">
+          <RequireAuth>{children}</RequireAuth>
+        </main>
       </body>
     </html>
   );
