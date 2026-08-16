@@ -13,8 +13,6 @@ export default function LoginPage() {
     setError(null);
     const supabase = createClient();
 
-    // Magic link login - no password needed. Swap for OAuth (Google/Facebook)
-    // by calling supabase.auth.signInWithOAuth({ provider: 'google' }) instead.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
@@ -51,12 +49,8 @@ export default function LoginPage() {
         >
           Send login link
         </button>
-        
-<button
-  onClick={() => setActiveCategory(null)}
-  className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-    activeCategory === null ? 'bg-orange-700 text-white' : 'bg-stone-100 text-stone-600'
-  }`}
->
-  All
-</button>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+      </form>
+    </div>
+  );
+}
