@@ -51,8 +51,12 @@ export default function LoginPage() {
         >
           Send login link
         </button>
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-      </form>
-    </div>
-  );
-}
+        
+<button
+  onClick={() => setActiveCategory(null)}
+  className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
+    activeCategory === null ? 'bg-orange-700 text-white' : 'bg-stone-100 text-stone-600'
+  }`}
+>
+  All
+</button>

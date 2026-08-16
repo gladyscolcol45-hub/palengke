@@ -42,7 +42,7 @@ export default function HomePage() {
         <button
           onClick={() => setActiveCategory(null)}
           className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-            activeCategory === null ? 'bg-orange-700 text-white' : 'bg-stone-100 text-stone-600'
+            activeCategory === null ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
           }`}
         >
           All
@@ -52,7 +52,7 @@ export default function HomePage() {
             key={c.id}
             onClick={() => setActiveCategory(c.id)}
             className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-              activeCategory === c.id ? 'bg-orange-700 text-white' : 'bg-stone-100 text-stone-600'
+              activeCategory === c.id ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
             }`}
           >
             {c.name}
