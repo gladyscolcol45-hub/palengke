@@ -11,6 +11,7 @@ export default function NewListingPage() {
     title: '', description: '', price: '', unit: 'each',
     category_id: '', barangay: '', city: '', photo: null,
   });
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -124,13 +125,26 @@ export default function NewListingPage() {
             className="border border-stone-300 rounded-md px-3 py-2 flex-1"
           />
         </div>
-        <input
-          type="file" accept="image/*"
-          onChange={(e) => setForm({ ...form, photo: e.target.files[0] })}
-        />
+        <div>
+          <input
+            type="file" accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              setForm({ ...form, photo: file });
+              setPhotoPreview(file ? URL.createObjectURL(file) : null);
+            }}
+          />
+          {photoPreview && (
+            <img
+              src={photoPreview}
+              alt="Preview"
+              className="mt-2 w-32 h-32 object-cover rounded-md border border-stone-200"
+            />
+          )}
+        </div>
         <button
           type="submit" disabled={saving}
-          className="bg-orange-700 text-white rounded-md py-2 font-semibold hover:bg-orange-800 disabled:opacity-50"
+          className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50"
         >
           {saving ? 'Posting…' : 'Post listing'}
         </button>
