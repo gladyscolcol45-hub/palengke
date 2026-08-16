@@ -47,7 +47,7 @@ export default function LoginPage() {
         />
         <button
           type="submit"
-          className="bg-orange-700 text-white rounded-md py-2 font-semibold hover:bg-orange-800"
+          className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800"
         >
           Send login link
         </button>
