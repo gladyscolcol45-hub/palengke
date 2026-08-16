@@ -33,10 +33,12 @@ export default function AuthNav() {
   if (user) {
     return (
       <div className="flex items-center gap-3">
-        <span className="text-stone-500 text-sm hidden sm:inline">{user.email}</span>
+        <a href="/settings" className="text-stone-600 hover:text-green-700">
+          Settings
+        </a>
         <button
           onClick={handleLogout}
-          className="text-stone-600 hover:text-orange-700"
+          className="text-stone-600 hover:text-green-700"
         >
           Log out
         </button>
@@ -45,7 +47,7 @@ export default function AuthNav() {
   }
 
   return (
-    <a href="/login" className="text-stone-600 hover:text-orange-700">
+    <a href="/login" className="text-stone-600 hover:text-green-700">
       Log in
     </a>
   );
