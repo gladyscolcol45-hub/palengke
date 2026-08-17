@@ -17,6 +17,7 @@ export default function ListingDetailPage() {
   const router = useRouter();
   const [listing, setListing] = useState(null);
   const [starting, setStarting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState(REPORT_REASONS[0]);
@@ -29,6 +30,7 @@ export default function ListingDetailPage() {
     const supabase = createClient();
     supabase.from('listings').select('*').eq('id', id).single()
       .then(({ data }) => setListing(data));
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
   }, [id]);
 
   async function handleMessageSeller() {
@@ -103,6 +105,8 @@ export default function ListingDetailPage() {
 
   if (!listing) return <p className="text-stone-400 text-sm">Loading…</p>;
 
+  const isOwner = currentUserId && currentUserId === listing.seller_id;
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
@@ -121,21 +125,32 @@ export default function ListingDetailPage() {
       {listing.description && <p className="text-stone-700 mt-4">{listing.description}</p>}
 
       <div className="flex items-center gap-4 mt-6">
-        <button
-          onClick={handleMessageSeller}
-          disabled={starting}
-          className="bg-orange-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-orange-800 disabled:opacity-50"
-        >
-          {starting ? 'Opening chat…' : 'Message seller'}
-        </button>
-
-        {!reportSubmitted && (
-          <button
-            onClick={() => setShowReportForm((v) => !v)}
-            className="text-stone-400 text-sm hover:text-red-600 underline"
+        {isOwner ? (
+          
+            href={`/listing/${listing.id}/edit`}
+            className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800"
           >
-            Report listing
-          </button>
+            Edit listing
+          </a>
+        ) : (
+          <>
+            <button
+              onClick={handleMessageSeller}
+              disabled={starting}
+              className="bg-orange-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-orange-800 disabled:opacity-50"
+            >
+              {starting ? 'Opening chat…' : 'Message seller'}
+            </button>
+
+            {!reportSubmitted && (
+              <button
+                onClick={() => setShowReportForm((v) => !v)}
+                className="text-stone-400 text-sm hover:text-red-600 underline"
+              >
+                Report listing
+              </button>
+            )}
+          </>
         )}
       </div>
 
