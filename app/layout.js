@@ -1,4 +1,3 @@
-cat > app/layout.js << 'EOF'
 import './globals.css';
 import Image from 'next/image';
 import AuthNav from '@/components/AuthNav';
@@ -35,4 +34,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-EOF
