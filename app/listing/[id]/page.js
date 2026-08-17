@@ -44,7 +44,7 @@ export default function ListingDetailPage() {
     }
     if (user.id === listing.seller_id) {
       setStarting(false);
-      return; // can't message yourself
+      return;
     }
 
     const { data: existing } = await supabase
@@ -103,7 +103,7 @@ export default function ListingDetailPage() {
     setShowReportForm(false);
   }
 
-  if (!listing) return <p className="text-stone-400 text-sm">Loading…</p>;
+  if (!listing) return <p className="text-stone-400 text-sm">Loading...</p>;
 
   const isOwner = currentUserId && currentUserId === listing.seller_id;
 
@@ -111,7 +111,6 @@ export default function ListingDetailPage() {
     <div className="max-w-2xl mx-auto">
       <div className="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
         {listing.photo_urls?.[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={listing.photo_urls[0]} alt={listing.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-400">No photo</div>
@@ -119,17 +118,14 @@ export default function ListingDetailPage() {
       </div>
       <h1 className="text-2xl font-bold">{listing.title}</h1>
       <p className="text-orange-700 font-bold text-xl mt-1">
-        ₱{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
+        P{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
       </p>
       <p className="text-stone-500 text-sm mt-1">{listing.barangay}{listing.barangay && listing.city ? ', ' : ''}{listing.city}</p>
       {listing.description && <p className="text-stone-700 mt-4">{listing.description}</p>}
 
       <div className="flex items-center gap-4 mt-6">
         {isOwner ? (
-          
-            href={`/listing/${listing.id}/edit`}
-            className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800"
-          >
+          <a href={`/listing/${listing.id}/edit`} className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800">
             Edit listing
           </a>
         ) : (
@@ -139,7 +135,7 @@ export default function ListingDetailPage() {
               disabled={starting}
               className="bg-orange-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-orange-800 disabled:opacity-50"
             >
-              {starting ? 'Opening chat…' : 'Message seller'}
+              {starting ? 'Opening chat...' : 'Message seller'}
             </button>
 
             {!reportSubmitted && (
@@ -155,7 +151,7 @@ export default function ListingDetailPage() {
       </div>
 
       {reportSubmitted && (
-        <p className="text-sm text-green-700 mt-3">Thanks — your report was submitted.</p>
+        <p className="text-sm text-green-700 mt-3">Thanks, your report was submitted.</p>
       )}
 
       {showReportForm && (
@@ -188,7 +184,7 @@ export default function ListingDetailPage() {
               disabled={reportSubmitting}
               className="bg-red-600 text-white rounded-md px-4 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
             >
-              {reportSubmitting ? 'Submitting…' : 'Submit report'}
+              {reportSubmitting ? 'Submitting...' : 'Submit report'}
             </button>
             <button
               onClick={() => setShowReportForm(false)}
