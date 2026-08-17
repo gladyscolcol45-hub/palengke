@@ -29,12 +29,7 @@ export default function RootLayout({ children }) {
         <main className="max-w-5xl mx-auto px-4 py-6 pb-24">
           <RequireAuth>{children}</RequireAuth>
         </main>
-        
-          href="/new-listing"
-          className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-full shadow-lg z-20"
-        >
-          Sell
-        </a>
+        <a href="/new-listing" className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-full shadow-lg z-20">Sell</a>
       </body>
     </html>
   );
