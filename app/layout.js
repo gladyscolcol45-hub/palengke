@@ -22,7 +22,6 @@ export default function RootLayout({ children }) {
             <Image src="/logo.png" alt="Palengke" width={140} height={40} priority />
           </a>
           <nav className="flex gap-4 text-sm items-center">
-            <a href="/new-listing" className="text-stone-600 hover:text-green-700">Sell</a>
             <AuthNav />
           </nav>
         </header>
