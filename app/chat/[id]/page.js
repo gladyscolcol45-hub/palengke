@@ -15,6 +15,14 @@ export default function ChatPage() {
   const [blocked, setBlocked] = useState(false);
   const bottomRef = useRef(null);
 
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [showReviewForm, setShowReviewForm] = useState(false);
+
   useEffect(() => {
     const supabase = createClient();
     let channel;
@@ -32,6 +40,16 @@ export default function ChatPage() {
       if (chat && user) {
         const other = chat.buyer_id === user.id ? chat.seller_id : chat.buyer_id;
         setOtherUserId(other);
+      }
+
+      if (user) {
+        const { data: existingReview } = await supabase
+          .from('reviews')
+          .select('id')
+          .eq('reviewer_id', user.id)
+          .eq('chat_id', chatId)
+          .maybeSingle();
+        if (existingReview) setReviewSubmitted(true);
       }
 
       const { data: existing } = await supabase
@@ -86,9 +104,49 @@ export default function ChatPage() {
     }
   }
 
+  async function handleSubmitReview() {
+    if (rating === 0) {
+      setReviewError('Please select a star rating.');
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError('');
+    const supabase = createClient();
+
+    const { error } = await supabase.from('reviews').insert({
+      reviewer_id: userId,
+      reviewed_user_id: otherUserId,
+      chat_id: chatId,
+      rating,
+      comment: reviewComment || null,
+    });
+
+    setReviewSubmitting(false);
+
+    if (error) {
+      setReviewError('Something went wrong. Please try again.');
+      return;
+    }
+
+    setReviewSubmitted(true);
+    setShowReviewForm(false);
+  }
+
   return (
     <div className="max-w-xl mx-auto flex flex-col h-[70vh]">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-between items-center mb-2">
+        {!reviewSubmitted && otherUserId && (
+          <button
+            onClick={() => setShowReviewForm((v) => !v)}
+            className="text-xs text-green-700 hover:text-green-800 underline"
+          >
+            Leave a review
+          </button>
+        )}
+        {reviewSubmitted && (
+          <span className="text-xs text-green-700">Review submitted ✓</span>
+        )}
+
         {!blocked && otherUserId && (
           <button
             onClick={handleBlock}
@@ -102,6 +160,51 @@ export default function ChatPage() {
 
       {blocked && (
         <p className="text-sm text-green-700 mb-2">User blocked. Redirecting…</p>
+      )}
+
+      {showReviewForm && (
+        <div className="mb-3 border border-stone-200 rounded-md p-4 bg-stone-50">
+          <p className="text-sm font-medium text-stone-700 mb-2">Rate this user</p>
+          <div className="flex gap-1 mb-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                className="text-2xl leading-none"
+              >
+                <span className={(hoverRating || rating) >= star ? 'text-yellow-500' : 'text-stone-300'}>
+                  ★
+                </span>
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+            rows={2}
+            placeholder="Optional comment"
+            className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm mb-3"
+          />
+          {reviewError && <p className="text-sm text-red-600 mb-2">{reviewError}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmitReview}
+              disabled={reviewSubmitting}
+              className="bg-green-700 text-white rounded-md px-4 py-2 text-sm font-semibold hover:bg-green-800 disabled:opacity-50"
+            >
+              {reviewSubmitting ? 'Submitting…' : 'Submit review'}
+            </button>
+            <button
+              onClick={() => setShowReviewForm(false)}
+              className="text-stone-500 text-sm px-4 py-2 hover:text-stone-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="flex-1 overflow-y-auto border border-stone-200 rounded-t-lg p-4 bg-white">
