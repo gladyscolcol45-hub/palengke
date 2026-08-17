@@ -1,215 +1,219 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 
-export default function EditListingPage() {
+const REPORT_REASONS = [
+  'Scam or fraud',
+  'Fake or misleading listing',
+  'Inappropriate content',
+  'Prohibited item',
+  'Other',
+];
+
+export default function ListingDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({
-    title: '', description: '', price: '', unit: 'each',
-    category_id: '', barangay: '', city: '', photo: null,
-  });
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [notAllowed, setNotAllowed] = useState(false);
+  const [listing, setListing] = useState(null);
+  const [sellerUsername, setSellerUsername] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportReason, setReportReason] = useState(REPORT_REASONS[0]);
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportError, setReportError] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
-
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      const { data: listing } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (!listing) {
-        setLoading(false);
-        return;
-      }
-
-      if (listing.seller_id !== user.id) {
-        setNotAllowed(true);
-        setLoading(false);
-        return;
-      }
-
-      setForm({
-        title: listing.title || '',
-        description: listing.description || '',
-        price: listing.price || '',
-        unit: listing.unit || 'each',
-        category_id: listing.category_id || '',
-        barangay: listing.barangay || '',
-        city: listing.city || '',
-        photo: null,
+    supabase.from('listings').select('*').eq('id', id).single()
+      .then(async ({ data }) => {
+        setListing(data);
+        if (data?.seller_id) {
+          const { data: sellerProfile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', data.seller_id)
+            .single();
+          setSellerUsername(sellerProfile?.username || null);
+        }
       });
-      setCurrentPhotoUrl(listing.photo_urls?.[0] || null);
-      setLoading(false);
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
+  }, [id]);
+
+  async function handleMessageSeller() {
+    setStarting(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (user.id === listing.seller_id) {
+      setStarting(false);
+      return;
     }
 
-    load();
+    const { data: existing } = await supabase
+      .from('chats')
+      .select('id')
+      .eq('listing_id', listing.id)
+      .eq('buyer_id', user.id)
+      .eq('seller_id', listing.seller_id)
+      .maybeSingle();
 
-    supabase.from('categories').select('*').order('id').then(({ data }) => setCategories(data || []));
-  }, [id, router]);
+    let chatId = existing?.id;
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
+    if (!chatId) {
+      const { data: created, error } = await supabase
+        .from('chats')
+        .insert({ listing_id: listing.id, buyer_id: user.id, seller_id: listing.seller_id })
+        .select('id')
+        .single();
+      if (error) {
+        setStarting(false);
+        return;
+      }
+      chatId = created.id;
+    }
+
+    router.push(`/chat/${chatId}`);
+  }
+
+  async function handleSubmitReport() {
+    setReportSubmitting(true);
+    setReportError('');
     const supabase = createClient();
-
     const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) {
-      setError('Please log in first.');
-      setSaving(false);
       router.push('/login');
       return;
     }
 
-    let photo_urls;
-    if (form.photo) {
-      const fileName = `${user.id}/${Date.now()}-${form.photo.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('listing-photos')
-        .upload(fileName, form.photo);
+    const { error } = await supabase.from('reports').insert({
+      reporter_id: user.id,
+      reported_user_id: listing.seller_id,
+      listing_id: listing.id,
+      reason: reportReason,
+      details: reportDetails || null,
+    });
 
-      if (uploadError) {
-        setError(uploadError.message);
-        setSaving(false);
-        return;
-      }
-      const { data: publicUrl } = supabase.storage.from('listing-photos').getPublicUrl(fileName);
-      photo_urls = [publicUrl.publicUrl];
+    setReportSubmitting(false);
+
+    if (error) {
+      setReportError('Something went wrong. Please try again.');
+      return;
     }
 
-    const updateData = {
-      title: form.title,
-      description: form.description,
-      price: parseFloat(form.price),
-      unit: form.unit,
-      category_id: form.category_id || null,
-      barangay: form.barangay,
-      city: form.city,
-    };
-    if (photo_urls) updateData.photo_urls = photo_urls;
-
-    const { error: updateError } = await supabase
-      .from('listings')
-      .update(updateData)
-      .eq('id', id);
-
-    setSaving(false);
-    if (updateError) setError(updateError.message);
-    else router.push(`/listing/${id}`);
+    setReportSubmitted(true);
+    setShowReportForm(false);
   }
 
-  if (loading) return <p className="text-stone-400 text-sm">Loading...</p>;
-  if (notAllowed) return <p className="text-red-600 text-sm">You can only edit your own listings.</p>;
+  if (!listing) return <p className="text-stone-400 text-sm">Loading…</p>;
+
+  const isOwner = currentUserId && currentUserId === listing.seller_id;
 
   return (
-    <div className="max-w-lg mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Edit listing</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input
-          required placeholder="What are you selling?"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          className="border border-stone-300 rounded-md px-3 py-2"
-        />
-        <textarea
-          placeholder="Description"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          className="border border-stone-300 rounded-md px-3 py-2"
-          rows={3}
-        />
-        <div className="flex gap-2">
-          <input
-            required type="number" step="0.01" placeholder="Price"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="border border-stone-300 rounded-md px-3 py-2 flex-1"
-          />
-          <select
-            value={form.unit}
-            onChange={(e) => setForm({ ...form, unit: e.target.value })}
-            className="border border-stone-300 rounded-md px-3 py-2"
+    <div className="max-w-2xl mx-auto">
+      <div className="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
+        {listing.photo_urls?.[0] ? (
+          <img src={listing.photo_urls[0]} alt={listing.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-stone-400">No photo</div>
+        )}
+      </div>
+      <h1 className="text-2xl font-bold">{listing.title}</h1>
+      <p className="text-orange-700 font-bold text-xl mt-1">
+        ₱{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
+      </p>
+      <p className="text-stone-500 text-sm mt-1">{listing.barangay}{listing.barangay && listing.city ? ', ' : ''}{listing.city}</p>
+      {sellerUsername && (
+        <p className="text-sm mt-2">
+          Sold by <a href={`/profile/${listing.seller_id}`} className="text-green-700 font-medium hover:underline">{sellerUsername}</a>
+        </p>
+      )}
+      {listing.description && <p className="text-stone-700 mt-4">{listing.description}</p>}
+
+      <div className="flex items-center gap-4 mt-6">
+        {isOwner ? (
+          
+            href={`/listing/${listing.id}/edit`}
+            className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800"
           >
-            <option value="each">each</option>
-            <option value="kg">per kg</option>
-            <option value="bundle">per bundle</option>
+            Edit listing
+          </a>
+        ) : (
+          <>
+            <button
+              onClick={handleMessageSeller}
+              disabled={starting}
+              className="bg-orange-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-orange-800 disabled:opacity-50"
+            >
+              {starting ? 'Opening chat…' : 'Message seller'}
+            </button>
+
+            {!reportSubmitted && (
+              <button
+                onClick={() => setShowReportForm((v) => !v)}
+                className="text-stone-400 text-sm hover:text-red-600 underline"
+              >
+                Report listing
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {reportSubmitted && (
+        <p className="text-sm text-green-700 mt-3">Thanks — your report was submitted.</p>
+      )}
+
+      {showReportForm && (
+        <div className="mt-4 border border-stone-200 rounded-md p-4 bg-stone-50">
+          <label className="block text-sm font-medium text-stone-700 mb-1">Reason</label>
+          <select
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm mb-3"
+          >
+            {REPORT_REASONS.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
           </select>
-        </div>
-        <select
-          value={form.category_id}
-          onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-          className="border border-stone-300 rounded-md px-3 py-2"
-        >
-          <option value="">Select a category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <div className="flex gap-2">
-          <input
-            placeholder="Barangay"
-            value={form.barangay}
-            onChange={(e) => setForm({ ...form, barangay: e.target.value })}
-            className="border border-stone-300 rounded-md px-3 py-2 flex-1"
+
+          <label className="block text-sm font-medium text-stone-700 mb-1">Details (optional)</label>
+          <textarea
+            value={reportDetails}
+            onChange={(e) => setReportDetails(e.target.value)}
+            rows={3}
+            className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm mb-3"
+            placeholder="Anything else we should know?"
           />
-          <input
-            placeholder="City"
-            value={form.city}
-            onChange={(e) => setForm({ ...form, city: e.target.value })}
-            className="border border-stone-300 rounded-md px-3 py-2 flex-1"
-          />
+
+          {reportError && <p className="text-sm text-red-600 mb-2">{reportError}</p>}
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmitReport}
+              disabled={reportSubmitting}
+              className="bg-red-600 text-white rounded-md px-4 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+            >
+              {reportSubmitting ? 'Submitting…' : 'Submit report'}
+            </button>
+            <button
+              onClick={() => setShowReportForm(false)}
+              className="text-stone-500 text-sm px-4 py-2 hover:text-stone-700"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-        <div>
-          <p className="text-sm text-stone-500 mb-1">Current photo</p>
-          {currentPhotoUrl && !photoPreview && (
-            <img
-              src={currentPhotoUrl}
-              alt="Current"
-              className="w-32 h-32 object-cover rounded-md border border-stone-200 mb-2"
-            />
-          )}
-          <input
-            type="file" accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files[0];
-              setForm({ ...form, photo: file });
-              setPhotoPreview(file ? URL.createObjectURL(file) : null);
-            }}
-          />
-          {photoPreview && (
-            <img
-              src={photoPreview}
-              alt="New preview"
-              className="mt-2 w-32 h-32 object-cover rounded-md border border-stone-200"
-            />
-          )}
-        </div>
-        <button
-          type="submit" disabled={saving}
-          className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50"
-        >
-          {saving ? 'Saving...' : 'Save changes'}
-        </button>
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-      </form>
+      )}
     </div>
   );
 }
