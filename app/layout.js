@@ -24,7 +24,6 @@ export default function RootLayout({ children }) {
           </a>
           <nav className="flex gap-4 text-sm items-center">
             <a href="/" className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-md">Home</a>
-            <a href="/messages" className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-md">Messages</a>
             <AuthNav />
           </nav>
         </header>
