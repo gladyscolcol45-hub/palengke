@@ -41,6 +41,7 @@ export default function ChatPage() {
         .order('created_at', { ascending: true });
       setMessages(existing || []);
 
+      // Subscribe to new messages in real time
       channel = supabase
         .channel(`chat-${chatId}`)
         .on(
