@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabaseClient';
 export default function MessagesPage() {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -18,7 +17,6 @@ export default function MessagesPage() {
         setLoading(false);
         return;
       }
-      setUserId(user.id);
 
       const chatsResult = await supabase
         .from('chats')
@@ -52,12 +50,17 @@ export default function MessagesPage() {
             .limit(1)
             .maybeSingle();
 
+          const listingTitle = listingResult.data ? listingResult.data.title : 'Listing';
+          const listingPhoto = listingResult.data && listingResult.data.photo_urls ? listingResult.data.photo_urls[0] : null;
+          const otherUsername = profileResult.data ? profileResult.data.username : 'User';
+          const lastMessage = lastMsgResult.data ? lastMsgResult.data.content : null;
+
           return {
-            ...chat,
-            listingTitle: listingResult.data ? listingResult.data.title : 'Listing',
-            listingPhoto: listingResult.data && listingResult.data.photo_urls ? listingResult.data.photo_urls[0] : null,
-            otherUsername: profileResult.data ? profileResult.data.username : 'User',
-            lastMessage: lastMsgResult.data ? lastMsgResult.data.content : null,
+            id: chat.id,
+            listingTitle: listingTitle,
+            listingPhoto: listingPhoto,
+            otherUsername: otherUsername,
+            lastMessage: lastMessage,
           };
         })
       );
@@ -80,28 +83,25 @@ export default function MessagesPage() {
         <p className="text-stone-400 text-sm">No conversations yet.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {chats.map((chat) => (
-            
-              key={chat.id}
-              href={'/chat/' + chat.id}
-              className="flex items-center gap-3 border border-stone-200 rounded-lg p-3 hover:bg-stone-50"
-            >
-              <div className="w-14 h-14 rounded-md bg-stone-100 overflow-hidden flex-shrink-0">
-                {chat.listingPhoto ? (
-                  <img src={chat.listingPhoto} alt={chat.listingTitle} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">No photo</div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">{chat.listingTitle}</p>
-                <p className="text-sm text-stone-500 truncate">with {chat.otherUsername}</p>
-                {chat.lastMessage && (
-                  <p className="text-sm text-stone-400 truncate">{chat.lastMessage}</p>
-                )}
-              </div>
-            </a>
-          ))}
+          {chats.map(function (chat) {
+            const chatUrl = '/chat/' + chat.id;
+            return (
+              <a key={chat.id} href={chatUrl} className="flex items-center gap-3 border border-stone-200 rounded-lg p-3 hover:bg-stone-50">
+                <div className="w-14 h-14 rounded-md bg-stone-100 overflow-hidden flex-shrink-0">
+                  {chat.listingPhoto ? (
+                    <img src={chat.listingPhoto} alt={chat.listingTitle} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">No photo</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{chat.listingTitle}</p>
+                  <p className="text-sm text-stone-500 truncate">with {chat.otherUsername}</p>
+                  {chat.lastMessage ? <p className="text-sm text-stone-400 truncate">{chat.lastMessage}</p> : null}
+                </div>
+              </a>
+            );
+          })}
         </div>
       )}
     </div>
