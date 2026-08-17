@@ -32,22 +32,23 @@ export default function ListingDetailPage() {
     supabase.from('listings').select('*').eq('id', id).single()
       .then(async ({ data }) => {
         setListing(data);
-        if (data?.seller_id) {
+        if (data && data.seller_id) {
           const { data: sellerProfile } = await supabase
             .from('profiles')
             .select('username')
             .eq('id', data.seller_id)
             .single();
-          setSellerUsername(sellerProfile?.username || null);
+          setSellerUsername(sellerProfile ? sellerProfile.username : null);
         }
       });
-    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data && data.user ? data.user.id : null));
   }, [id]);
 
   async function handleMessageSeller() {
     setStarting(true);
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const userResult = await supabase.auth.getUser();
+    const user = userResult.data.user;
 
     if (!user) {
       router.push('/login');
@@ -58,7 +59,7 @@ export default function ListingDetailPage() {
       return;
     }
 
-    const { data: existing } = await supabase
+    const existingResult = await supabase
       .from('chats')
       .select('id')
       .eq('listing_id', listing.id)
@@ -66,36 +67,37 @@ export default function ListingDetailPage() {
       .eq('seller_id', listing.seller_id)
       .maybeSingle();
 
-    let chatId = existing?.id;
+    let chatId = existingResult.data ? existingResult.data.id : null;
 
     if (!chatId) {
-      const { data: created, error } = await supabase
+      const createdResult = await supabase
         .from('chats')
         .insert({ listing_id: listing.id, buyer_id: user.id, seller_id: listing.seller_id })
         .select('id')
         .single();
-      if (error) {
+      if (createdResult.error) {
         setStarting(false);
         return;
       }
-      chatId = created.id;
+      chatId = createdResult.data.id;
     }
 
-    router.push(`/chat/${chatId}`);
+    router.push('/chat/' + chatId);
   }
 
   async function handleSubmitReport() {
     setReportSubmitting(true);
     setReportError('');
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const userResult = await supabase.auth.getUser();
+    const user = userResult.data.user;
 
     if (!user) {
       router.push('/login');
       return;
     }
 
-    const { error } = await supabase.from('reports').insert({
+    const insertResult = await supabase.from('reports').insert({
       reporter_id: user.id,
       reported_user_id: listing.seller_id,
       listing_id: listing.id,
@@ -105,7 +107,7 @@ export default function ListingDetailPage() {
 
     setReportSubmitting(false);
 
-    if (error) {
+    if (insertResult.error) {
       setReportError('Something went wrong. Please try again.');
       return;
     }
@@ -114,14 +116,18 @@ export default function ListingDetailPage() {
     setShowReportForm(false);
   }
 
-  if (!listing) return <p className="text-stone-400 text-sm">Loading…</p>;
+  if (!listing) {
+    return <p className="text-stone-400 text-sm">Loading...</p>;
+  }
 
   const isOwner = currentUserId && currentUserId === listing.seller_id;
+  const editUrl = '/listing/' + listing.id + '/edit';
+  const profileUrl = '/profile/' + listing.seller_id;
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
-        {listing.photo_urls?.[0] ? (
+        {listing.photo_urls && listing.photo_urls[0] ? (
           <img src={listing.photo_urls[0]} alt={listing.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-400">No photo</div>
@@ -129,24 +135,15 @@ export default function ListingDetailPage() {
       </div>
       <h1 className="text-2xl font-bold">{listing.title}</h1>
       <p className="text-orange-700 font-bold text-xl mt-1">
-        ₱{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
+        P{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
       </p>
       <p className="text-stone-500 text-sm mt-1">{listing.barangay}{listing.barangay && listing.city ? ', ' : ''}{listing.city}</p>
-      {sellerUsername && (
-        <p className="text-sm mt-2">
-          Sold by <a href={`/profile/${listing.seller_id}`} className="text-green-700 font-medium hover:underline">{sellerUsername}</a>
-        </p>
-      )}
-      {listing.description && <p className="text-stone-700 mt-4">{listing.description}</p>}
+      {sellerUsername ? <p className="text-sm mt-2">Sold by <a href={profileUrl} className="text-green-700 font-medium hover:underline">{sellerUsername}</a></p> : null}
+      {listing.description ? <p className="text-stone-700 mt-4">{listing.description}</p> : null}
 
       <div className="flex items-center gap-4 mt-6">
         {isOwner ? (
-          
-            href={`/listing/${listing.id}/edit`}
-            className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800"
-          >
-            Edit listing
-          </a>
+          <a href={editUrl} className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800">Edit listing</a>
         ) : (
           <>
             <button
@@ -154,7 +151,7 @@ export default function ListingDetailPage() {
               disabled={starting}
               className="bg-orange-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-orange-800 disabled:opacity-50"
             >
-              {starting ? 'Opening chat…' : 'Message seller'}
+              {starting ? 'Opening chat...' : 'Message seller'}
             </button>
 
             {!reportSubmitted && (
@@ -170,7 +167,7 @@ export default function ListingDetailPage() {
       </div>
 
       {reportSubmitted && (
-        <p className="text-sm text-green-700 mt-3">Thanks — your report was submitted.</p>
+        <p className="text-sm text-green-700 mt-3">Thanks, your report was submitted.</p>
       )}
 
       {showReportForm && (
@@ -203,7 +200,7 @@ export default function ListingDetailPage() {
               disabled={reportSubmitting}
               className="bg-red-600 text-white rounded-md px-4 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
             >
-              {reportSubmitting ? 'Submitting…' : 'Submit report'}
+              {reportSubmitting ? 'Submitting...' : 'Submit report'}
             </button>
             <button
               onClick={() => setShowReportForm(false)}
