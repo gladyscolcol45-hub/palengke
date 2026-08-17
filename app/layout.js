@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen bg-stone-50 text-stone-900">
         <header className="border-b border-stone-200 bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
           <a href="/" className="flex items-center">
-            <Image src="/logo.png" alt="Palengke" width={140} height={40} priority />
+            <Image src="/logo-192.png" alt="Palengke" width={140} height={40} priority />
           </a>
           <nav className="flex gap-4 text-sm items-center">
             <AuthNav />
