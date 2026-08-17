@@ -1,7 +1,9 @@
+cat > app/layout.js << 'EOF'
 import './globals.css';
 import Image from 'next/image';
 import AuthNav from '@/components/AuthNav';
 import RequireAuth from '@/components/RequireAuth';
+import FloatingSell from '@/components/FloatingSell';
 
 export const metadata = {
   title: 'Palengke',
@@ -22,15 +24,15 @@ export default function RootLayout({ children }) {
             <Image src="/logo-192.png" alt="Palengke" width={140} height={40} priority />
           </a>
           <nav className="flex gap-4 text-sm items-center">
-            <a href="/" className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-md">Home</a>
             <AuthNav />
           </nav>
         </header>
         <main className="max-w-5xl mx-auto px-4 py-6 pb-24">
           <RequireAuth>{children}</RequireAuth>
         </main>
-        <a href="/new-listing" className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-full shadow-lg z-20">Sell</a>
+        <FloatingSell />
       </body>
     </html>
   );
 }
+EOF
