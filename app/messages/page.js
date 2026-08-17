@@ -25,47 +25,43 @@ export default function MessagesPage() {
         .order('created_at', { ascending: false });
 
       const chatList = chatsResult.data || [];
+      const results = [];
 
-      const enriched = await Promise.all(
-        chatList.map(async (chat) => {
-          const otherId = chat.buyer_id === user.id ? chat.seller_id : chat.buyer_id;
+      for (let i = 0; i < chatList.length; i++) {
+        const chat = chatList[i];
+        const otherId = chat.buyer_id === user.id ? chat.seller_id : chat.buyer_id;
 
-          const listingResult = await supabase
-            .from('listings')
-            .select('title, photo_urls')
-            .eq('id', chat.listing_id)
-            .single();
+        const listingResult = await supabase
+          .from('listings')
+          .select('title, photo_urls')
+          .eq('id', chat.listing_id)
+          .single();
 
-          const profileResult = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', otherId)
-            .single();
+        const profileResult = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', otherId)
+          .single();
 
-          const lastMsgResult = await supabase
-            .from('messages')
-            .select('content, created_at')
-            .eq('chat_id', chat.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        const msgsResult = await supabase
+          .from('messages')
+          .select('content, created_at')
+          .eq('chat_id', chat.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-          const listingTitle = listingResult.data ? listingResult.data.title : 'Listing';
-          const listingPhoto = listingResult.data && listingResult.data.photo_urls ? listingResult.data.photo_urls[0] : null;
-          const otherUsername = profileResult.data ? profileResult.data.username : 'User';
-          const lastMessage = lastMsgResult.data ? lastMsgResult.data.content : null;
+        const lastMsg = msgsResult.data && msgsResult.data.length > 0 ? msgsResult.data[0].content : null;
 
-          return {
-            id: chat.id,
-            listingTitle: listingTitle,
-            listingPhoto: listingPhoto,
-            otherUsername: otherUsername,
-            lastMessage: lastMessage,
-          };
-        })
-      );
+        results.push({
+          id: chat.id,
+          listingTitle: listingResult.data ? listingResult.data.title : 'Listing',
+          listingPhoto: listingResult.data && listingResult.data.photo_urls ? listingResult.data.photo_urls[0] : null,
+          otherUsername: profileResult.data && profileResult.data.username ? profileResult.data.username : 'Unnamed user',
+          lastMessage: lastMsg,
+        });
+      }
 
-      setChats(enriched);
+      setChats(results);
       setLoading(false);
     }
 
@@ -97,7 +93,7 @@ export default function MessagesPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{chat.listingTitle}</p>
                   <p className="text-sm text-stone-500 truncate">with {chat.otherUsername}</p>
-                  {chat.lastMessage ? <p className="text-sm text-stone-400 truncate">{chat.lastMessage}</p> : null}
+                  <p className="text-sm text-stone-400 truncate">{chat.lastMessage ? chat.lastMessage : 'No messages yet'}</p>
                 </div>
               </a>
             );
