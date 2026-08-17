@@ -4,41 +4,58 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  async function handleLogin(e) {
+  async function handleSignup(e) {
     e.preventDefault();
     setError(null);
-    setSaving(true);
 
     const cleanUsername = username.trim().toLowerCase();
-    const fakeEmail = `${cleanUsername}@palengke.local`;
-    const supabase = createClient();
+    if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
+      setError('Username must be 3-20 characters: letters, numbers, underscore only.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
+    setSaving(true);
+    const supabase = createClient();
+    const fakeEmail = `${cleanUsername}@palengke.local`;
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: fakeEmail,
       password,
     });
 
-    setSaving(false);
-
-    if (loginError) {
-      setError('Incorrect username or password.');
+    if (signUpError) {
+      setSaving(false);
+      if (signUpError.message.includes('already registered')) {
+        setError('That username is already taken.');
+      } else {
+        setError(signUpError.message);
+      }
       return;
     }
 
+    if (data.user) {
+      await supabase.from('profiles').update({ username: cleanUsername }).eq('id', data.user.id);
+    }
+
+    setSaving(false);
     router.push('/');
   }
 
   return (
     <div className="max-w-sm mx-auto py-12">
-      <h1 className="text-2xl font-bold mb-6">Log in to Palengke</h1>
-      <form onSubmit={handleLogin} className="flex flex-col gap-3">
+      <h1 className="text-2xl font-bold mb-6">Sign up for Palengke</h1>
+      <form onSubmit={handleSignup} className="flex flex-col gap-3">
         <input
           required
           placeholder="Username"
@@ -59,12 +76,12 @@ export default function LoginPage() {
           disabled={saving}
           className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50"
         >
-          {saving ? 'Logging in…' : 'Log in'}
+          {saving ? 'Signing up…' : 'Sign up'}
         </button>
         {error && <p className="text-red-600 text-sm">{error}</p>}
       </form>
       <p className="text-sm text-stone-500 mt-4">
-        Don't have an account? <a href="/signup" className="text-green-700 underline">Sign up</a>
+        Don't have an account? <a href="/login" className="text-green-700 underline">Log in</a>
       </p>
     </div>
   );
