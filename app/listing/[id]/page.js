@@ -28,6 +28,9 @@ export default function ListingDetailPage() {
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportError, setReportError] = useState('');
 
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.from('listings').select('*').eq('id', id).single()
@@ -42,8 +45,38 @@ export default function ListingDetailPage() {
           setSellerUsername(sellerProfile ? sellerProfile.username : null);
         }
       });
-    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data && data.user ? data.user.id : null));
+    supabase.auth.getUser().then(async ({ data }) => {
+      const user = data && data.user ? data.user : null;
+      setCurrentUserId(user ? user.id : null);
+      if (user) {
+        const { data: favRow } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('listing_id', id)
+          .maybeSingle();
+        setIsFavorited(!!favRow);
+      }
+    });
   }, [id]);
+
+  async function handleToggleFavorite() {
+    if (!currentUserId) {
+      router.push('/login');
+      return;
+    }
+    setFavoriteLoading(true);
+    const supabase = createClient();
+
+    if (isFavorited) {
+      await supabase.from('favorites').delete().eq('user_id', currentUserId).eq('listing_id', id);
+      setIsFavorited(false);
+    } else {
+      await supabase.from('favorites').insert({ user_id: currentUserId, listing_id: id });
+      setIsFavorited(true);
+    }
+    setFavoriteLoading(false);
+  }
 
   async function handleMessageSeller() {
     setStarting(true);
@@ -113,6 +146,13 @@ export default function ListingDetailPage() {
       return;
     }
 
+    await supabase.from('notifications').insert({
+      user_id: listing.seller_id,
+      type: 'listing_reported',
+      message: `Your listing "${listing.title}" was reported.`,
+      link: '/listing/' + listing.id,
+    });
+
     setReportSubmitted(true);
     setShowReportForm(false);
   }
@@ -128,11 +168,30 @@ export default function ListingDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
+      <div className="relative aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
         {listing.photo_urls && listing.photo_urls[0] ? (
           <img src={listing.photo_urls[0]} alt={listing.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-400">No photo</div>
+        )}
+        {!isOwner && (
+          <button
+            onClick={handleToggleFavorite}
+            disabled={favoriteLoading}
+            aria-label={isFavorited ? 'Remove from saved' : 'Save listing'}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white disabled:opacity-50"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill={isFavorited ? '#c2410c' : 'none'}
+              stroke={isFavorited ? '#c2410c' : 'currentColor'}
+              strokeWidth="2"
+              className="w-5 h-5 text-stone-500"
+            >
+              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+            </svg>
+          </button>
         )}
       </div>
       <h1 className="text-2xl font-bold">{listing.title}</h1>

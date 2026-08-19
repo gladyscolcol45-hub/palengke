@@ -101,6 +101,22 @@ export async function POST(request) {
 
   if (action === 'remove_listing') {
     await supabaseAdmin.from('listings').update({ status: 'removed' }).eq('id', report.listing_id);
+
+    const { data: removedListing } = await supabaseAdmin
+      .from('listings')
+      .select('seller_id, title')
+      .eq('id', report.listing_id)
+      .single();
+
+    if (removedListing) {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: removedListing.seller_id,
+        type: 'listing_removed',
+        message: `Your listing "${removedListing.title}" was removed for violating our policies.`,
+        link: '/listing/' + report.listing_id,
+      });
+    }
+
     await supabaseAdmin.from('reports').delete().eq('id', reportId);
     return NextResponse.json({ success: true });
   }

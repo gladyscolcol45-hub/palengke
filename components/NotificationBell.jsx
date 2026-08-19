@@ -8,68 +8,55 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const supabase = createClient();
-    let cancelled = false;
+    let channel;
 
-    async function checkUnread(currentUser) {
-      if (!currentUser) return;
-
-      const { data: chats } = await supabase
-        .from('chats')
-        .select('id, buyer_id, seller_id, buyer_last_read_at, seller_last_read_at')
-        .or('buyer_id.eq.' + currentUser.id + ',seller_id.eq.' + currentUser.id);
-
-      if (!chats || chats.length === 0) {
-        if (!cancelled) setHasUnread(false);
+    async function checkUnread(userId) {
+      if (!userId) {
+        setHasUnread(false);
         return;
       }
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('read', false);
+      setHasUnread(!!count && count > 0);
+    }
 
-      for (const chat of chats) {
-        const isBuyer = chat.buyer_id === currentUser.id;
-        const myLastRead = isBuyer ? chat.buyer_last_read_at : chat.seller_last_read_at;
-
-        const { data: lastMsgRows } = await supabase
-          .from('messages')
-          .select('sender_id, created_at')
-          .eq('chat_id', chat.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        const lastMsg = lastMsgRows && lastMsgRows.length > 0 ? lastMsgRows[0] : null;
-        const unread = !!(
-          lastMsg &&
-          lastMsg.sender_id !== currentUser.id &&
-          (!myLastRead || new Date(lastMsg.created_at) > new Date(myLastRead))
-        );
-
-        if (unread) {
-          if (!cancelled) setHasUnread(true);
-          return;
-        }
-      }
-
-      if (!cancelled) setHasUnread(false);
+    function subscribe(userId) {
+      if (!userId) return;
+      channel = supabase
+        .channel(`notifications-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+          () => checkUnread(userId)
+        )
+        .subscribe();
     }
 
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user || null);
-      checkUnread(data?.user || null);
+      const currentUser = data?.user || null;
+      setUser(currentUser);
+      checkUnread(currentUser?.id || null);
+      subscribe(currentUser?.id || null);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
-      checkUnread(session?.user || null);
+      checkUnread(session?.user?.id || null);
     });
 
     return () => {
-      cancelled = true;
       listener.subscription.unsubscribe();
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
   if (!user) return null;
 
   return (
-    <a href="/messages" aria-label="Notifications" className="relative text-stone-600 hover:text-green-700 px-1">
+    <a href="/notifications" aria-label="Notifications" className="relative text-stone-600 hover:text-green-700 px-1">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"

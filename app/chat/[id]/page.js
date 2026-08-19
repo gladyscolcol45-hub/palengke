@@ -46,6 +46,13 @@ export default function ChatPage() {
           .from('chats')
           .update({ [readColumn]: new Date().toISOString() })
           .eq('id', chatId);
+
+        await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('user_id', user.id)
+          .eq('link', '/chat/' + chatId)
+          .eq('read', false);
       }
 
       if (user) {
@@ -75,6 +82,12 @@ export default function ChatPage() {
             if (payload.new.sender_id !== user.id && chat) {
               const readColumn = chat.buyer_id === user.id ? 'buyer_last_read_at' : 'seller_last_read_at';
               supabase.from('chats').update({ [readColumn]: new Date().toISOString() }).eq('id', chatId);
+              supabase
+                .from('notifications')
+                .update({ read: true })
+                .eq('user_id', user.id)
+                .eq('link', '/chat/' + chatId)
+                .eq('read', false);
             }
           }
         )
@@ -93,7 +106,16 @@ export default function ChatPage() {
     e.preventDefault();
     if (!text.trim()) return;
     const supabase = createClient();
-    await supabase.from('messages').insert({ chat_id: chatId, sender_id: userId, content: text.trim() });
+    const trimmed = text.trim();
+    await supabase.from('messages').insert({ chat_id: chatId, sender_id: userId, content: trimmed });
+    if (otherUserId) {
+      await supabase.from('notifications').insert({
+        user_id: otherUserId,
+        type: 'message',
+        message: trimmed.length > 60 ? trimmed.slice(0, 60) + '…' : trimmed,
+        link: '/chat/' + chatId,
+      });
+    }
     setText('');
   }
 
@@ -139,6 +161,13 @@ export default function ChatPage() {
       setReviewError('Something went wrong. Please try again.');
       return;
     }
+
+    await supabase.from('notifications').insert({
+      user_id: otherUserId,
+      type: 'review',
+      message: `You received a new ${rating}-star review!`,
+      link: '/profile/' + otherUserId,
+    });
 
     setReviewSubmitted(true);
     setShowReviewForm(false);
