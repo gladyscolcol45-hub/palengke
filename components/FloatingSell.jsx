@@ -17,6 +17,6 @@ export default function FloatingSell() {
   if (!user) return null;
 
   return (
-    <a href="/new-listing" className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-full shadow-lg z-20">Sell</a>
+    <a href="/new-listing" className="fixed bottom-20 right-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-3 rounded-full shadow-lg z-20">Sell</a>
   );
 }

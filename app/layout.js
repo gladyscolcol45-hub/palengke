@@ -3,6 +3,7 @@ import Image from 'next/image';
 import AuthNav from '@/components/AuthNav';
 import RequireAuth from '@/components/RequireAuth';
 import FloatingSell from '@/components/FloatingSell';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata = {
   title: 'Palengke',
@@ -26,10 +27,11 @@ export default function RootLayout({ children }) {
             <AuthNav />
           </nav>
         </header>
-        <main className="max-w-5xl mx-auto px-4 py-6 pb-24">
+        <main className="max-w-5xl mx-auto px-4 py-6 pb-28">
           <RequireAuth>{children}</RequireAuth>
         </main>
         <FloatingSell />
+        <BottomNav />
       </body>
     </html>
   );
