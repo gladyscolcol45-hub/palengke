@@ -143,17 +143,6 @@ export default function ListingDetailPage() {
       {sellerUsername ? <p className="text-sm mt-2">Sold by <a href={profileUrl} className="text-green-700 font-medium hover:underline">{sellerUsername}</a></p> : null}
       {listing.description ? <p className="text-stone-700 mt-4">{listing.description}</p> : null}
 
-      {hasLocation && (
-        <div className="mt-4">
-          <p className="text-sm font-medium text-stone-700 mb-1">Location</p>
-          <MapDisplay
-            listings={[listing]}
-            height={220}
-            zoom={14}
-          />
-        </div>
-      )}
-
       <div className="flex items-center gap-4 mt-6">
         {isOwner ? (
           <a href={editUrl} className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800">Edit listing</a>
@@ -178,6 +167,17 @@ export default function ListingDetailPage() {
           </>
         )}
       </div>
+
+      {hasLocation && (
+        <div className="mt-6">
+          <p className="text-sm font-medium text-stone-700 mb-1">Location</p>
+          <MapDisplay
+            listings={[listing]}
+            height={220}
+            zoom={14}
+          />
+        </div>
+      )}
 
       {reportSubmitted && (
         <p className="text-sm text-green-700 mt-3">Thanks, your report was submitted.</p>

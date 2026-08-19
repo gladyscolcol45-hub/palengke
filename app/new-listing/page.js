@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import { geocodeAddress } from '@/lib/geocode';
 import LocationPicker from '@/components/DynamicLocationPicker';
 
 export default function NewListingPage() {
@@ -13,6 +14,8 @@ export default function NewListingPage() {
     category_id: '', barangay: '', city: '', photo: null,
     latitude: null, longitude: null,
   });
+  const [locationSource, setLocationSource] = useState(null); // null | 'auto' | 'manual'
+  const [geocoding, setGeocoding] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -21,6 +24,23 @@ export default function NewListingPage() {
     const supabase = createClient();
     supabase.from('categories').select('*').order('id').then(({ data }) => setCategories(data || []));
   }, []);
+
+  async function autoLocateFromAddress(barangay, city) {
+    if (locationSource === 'manual') return; // don't override a manual pin
+    if (!barangay && !city) return;
+    setGeocoding(true);
+    const result = await geocodeAddress(barangay, city);
+    setGeocoding(false);
+    if (result) {
+      setForm((prev) => ({ ...prev, latitude: result.lat, longitude: result.lng }));
+      setLocationSource('auto');
+    }
+  }
+
+  function handleLocationChange(lat, lng, source) {
+    setForm({ ...form, latitude: lat, longitude: lng });
+    setLocationSource(source);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -34,6 +54,15 @@ export default function NewListingPage() {
       setSaving(false);
       router.push('/login');
       return;
+    }
+
+    let { latitude, longitude } = form;
+    if ((latitude == null || longitude == null) && (form.barangay || form.city)) {
+      const result = await geocodeAddress(form.barangay, form.city);
+      if (result) {
+        latitude = result.lat;
+        longitude = result.lng;
+      }
     }
 
     let photo_urls = [];
@@ -62,8 +91,8 @@ export default function NewListingPage() {
       barangay: form.barangay,
       city: form.city,
       photo_urls,
-      latitude: form.latitude,
-      longitude: form.longitude,
+      latitude,
+      longitude,
     });
 
     setSaving(false);
@@ -120,12 +149,14 @@ export default function NewListingPage() {
             placeholder="Barangay"
             value={form.barangay}
             onChange={(e) => setForm({ ...form, barangay: e.target.value })}
+            onBlur={() => autoLocateFromAddress(form.barangay, form.city)}
             className="border border-stone-300 rounded-md px-3 py-2 flex-1"
           />
           <input
             placeholder="City"
             value={form.city}
             onChange={(e) => setForm({ ...form, city: e.target.value })}
+            onBlur={() => autoLocateFromAddress(form.barangay, form.city)}
             className="border border-stone-300 rounded-md px-3 py-2 flex-1"
           />
         </div>
@@ -133,7 +164,14 @@ export default function NewListingPage() {
         <LocationPicker
           latitude={form.latitude}
           longitude={form.longitude}
-          onChange={(lat, lng) => setForm({ ...form, latitude: lat, longitude: lng })}
+          onChange={handleLocationChange}
+          autoNote={
+            geocoding
+              ? 'Looking up that area…'
+              : locationSource === 'auto'
+              ? 'Location guessed from your barangay/city. Tap the map to set your exact spot.'
+              : null
+          }
         />
 
         <div>
