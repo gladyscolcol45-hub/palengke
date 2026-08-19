@@ -40,6 +40,12 @@ export default function ChatPage() {
       if (chat && user) {
         const other = chat.buyer_id === user.id ? chat.seller_id : chat.buyer_id;
         setOtherUserId(other);
+
+        const readColumn = chat.buyer_id === user.id ? 'buyer_last_read_at' : 'seller_last_read_at';
+        await supabase
+          .from('chats')
+          .update({ [readColumn]: new Date().toISOString() })
+          .eq('id', chatId);
       }
 
       if (user) {
@@ -64,7 +70,13 @@ export default function ChatPage() {
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
-          (payload) => setMessages((prev) => [...prev, payload.new])
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new]);
+            if (payload.new.sender_id !== user.id && chat) {
+              const readColumn = chat.buyer_id === user.id ? 'buyer_last_read_at' : 'seller_last_read_at';
+              supabase.from('chats').update({ [readColumn]: new Date().toISOString() }).eq('id', chatId);
+            }
+          }
         )
         .subscribe();
     }
