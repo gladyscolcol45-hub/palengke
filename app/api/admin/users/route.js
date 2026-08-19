@@ -46,7 +46,7 @@ export async function GET(request) {
 
   const { data: users, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, username, full_name, is_verified, is_admin')
+    .select('id, username, full_name, is_admin, verified_until')
     .ilike('username', `%${q}%`)
     .limit(20);
 
@@ -63,28 +63,42 @@ export async function POST(request) {
   const { supabaseAdmin } = auth;
 
   const body = await request.json();
-  const { userId, verified } = body;
+  const { userId, action } = body;
 
-  if (!userId || typeof verified !== 'boolean') {
-    return NextResponse.json({ error: 'Missing userId or verified' }, { status: 400 });
+  if (!userId || !['verify', 'unverify'].includes(action)) {
+    return NextResponse.json({ error: 'Missing userId or action' }, { status: 400 });
   }
 
+  if (action === 'verify') {
+    const verifiedUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ is_verified: true, verified_until: verifiedUntil })
+      .eq('id', userId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    await supabaseAdmin.from('notifications').insert({
+      user_id: userId,
+      type: 'verified',
+      message: 'You are now a Verified Seller on Palengke for the next 30 days!',
+      link: '/settings',
+    });
+
+    return NextResponse.json({ success: true, verifiedUntil });
+  }
+
+  // action === 'unverify'
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({ is_verified: verified })
+    .update({ is_verified: false, verified_until: null })
     .eq('id', userId);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  if (verified) {
-    await supabaseAdmin.from('notifications').insert({
-      user_id: userId,
-      type: 'verified',
-      message: 'You are now a Verified Seller on Palengke!',
-      link: '/profile/' + userId,
-    });
   }
 
   return NextResponse.json({ success: true });

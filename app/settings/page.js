@@ -25,6 +25,8 @@ export default function SettingsPage() {
   const [blockedLoading, setBlockedLoading] = useState(true);
   const [unblockingId, setUnblockingId] = useState(null);
 
+  const [verifiedUntil, setVerifiedUntil] = useState(null);
+
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -56,6 +58,7 @@ export default function SettingsPage() {
           city: profile.city || '',
         });
         setAvatarUrl(profile.avatar_url || null);
+        setVerifiedUntil(profile.verified_until || null);
       }
 
       setLoading(false);
@@ -207,9 +210,39 @@ export default function SettingsPage() {
     return <p className="text-stone-400 text-sm">Loading...</p>;
   }
 
+  const isVerified = !!verifiedUntil && new Date(verifiedUntil) > new Date();
+  const daysLeft = isVerified
+    ? Math.max(1, Math.ceil((new Date(verifiedUntil) - new Date()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
   return (
     <div className="max-w-lg mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
+
+      <div
+        className={`mb-6 rounded-lg p-4 border ${
+          isVerified ? 'border-green-200 bg-green-50' : 'border-stone-200 bg-stone-50'
+        }`}
+      >
+        {isVerified ? (
+          <>
+            <p className="text-sm font-semibold text-green-800 flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-700 text-white text-xs">✓</span>
+              Verified Seller
+            </p>
+            <p className="text-sm text-green-700 mt-1">
+              Your badge is active for {daysLeft} more day{daysLeft !== 1 ? 's' : ''}. To keep it after that, send your renewal payment and contact the admin to extend it.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-stone-700">Not a Verified Seller yet</p>
+            <p className="text-sm text-stone-500 mt-1">
+              Want the checkmark badge on your profile and listings? Contact the admin to find out how.
+            </p>
+          </>
+        )}
+      </div>
       <form onSubmit={handleSave} className="flex flex-col gap-4">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">Profile photo</label>

@@ -49,6 +49,8 @@ export default function ProfilePage() {
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : null;
 
+  const isVerified = !!profile.verified_until && new Date(profile.verified_until) > new Date();
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
@@ -58,7 +60,7 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-xl font-bold flex items-center gap-1.5">
             {profile.username || 'Unknown user'}
-            {profile.is_verified && (
+            {isVerified && (
               <span
                 title="Verified Seller"
                 className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-700 text-white text-xs"
@@ -67,7 +69,7 @@ export default function ProfilePage() {
               </span>
             )}
           </h1>
-          {profile.is_verified && (
+          {isVerified && (
             <p className="text-xs text-green-700 font-medium">Verified Seller</p>
           )}
           {avgRating ? (

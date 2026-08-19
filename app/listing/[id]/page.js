@@ -41,11 +41,13 @@ export default function ListingDetailPage() {
         if (data && data.seller_id) {
           const { data: sellerProfile } = await supabase
             .from('profiles')
-            .select('username, is_verified')
+            .select('username, verified_until')
             .eq('id', data.seller_id)
             .single();
           setSellerUsername(sellerProfile ? sellerProfile.username : null);
-          setSellerVerified(!!(sellerProfile && sellerProfile.is_verified));
+          setSellerVerified(
+            !!(sellerProfile && sellerProfile.verified_until && new Date(sellerProfile.verified_until) > new Date())
+          );
         }
       });
     supabase.auth.getUser().then(async ({ data }) => {
