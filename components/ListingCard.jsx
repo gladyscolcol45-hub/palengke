@@ -52,9 +52,14 @@ export default function ListingCard({ listing }) {
       <div className="relative aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt={listing.title} className="w-full h-full object-cover" />
+          <img src={photo} alt={listing.title} className={`w-full h-full object-cover ${listing.status === 'sold' ? 'opacity-50' : ''}`} />
         ) : (
           <span className="text-stone-400 text-sm">No photo</span>
+        )}
+        {listing.status === 'sold' && (
+          <span className="absolute top-2 left-2 bg-stone-900 text-white text-xs font-bold px-2 py-1 rounded">
+            SOLD
+          </span>
         )}
         {!isOwnListing && userId && (
           <button

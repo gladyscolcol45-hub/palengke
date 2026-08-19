@@ -24,7 +24,7 @@ export default function HomePage() {
       let query = supabase
         .from('listings')
         .select('*')
-        .eq('status', 'active')
+        .in('status', ['active', 'sold'])
         .order('created_at', { ascending: false });
 
       if (activeCategory) query = query.eq('category_id', activeCategory);

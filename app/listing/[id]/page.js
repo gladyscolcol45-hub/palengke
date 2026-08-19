@@ -30,6 +30,7 @@ export default function ListingDetailPage() {
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [togglingSold, setTogglingSold] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -76,6 +77,17 @@ export default function ListingDetailPage() {
       setIsFavorited(true);
     }
     setFavoriteLoading(false);
+  }
+
+  async function handleToggleSold() {
+    setTogglingSold(true);
+    const supabase = createClient();
+    const newStatus = listing.status === 'sold' ? 'active' : 'sold';
+    const { error } = await supabase.from('listings').update({ status: newStatus }).eq('id', listing.id);
+    setTogglingSold(false);
+    if (!error) {
+      setListing({ ...listing, status: newStatus });
+    }
   }
 
   async function handleMessageSeller() {
@@ -170,9 +182,18 @@ export default function ListingDetailPage() {
     <div className="max-w-2xl mx-auto">
       <div className="relative aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
         {listing.photo_urls && listing.photo_urls[0] ? (
-          <img src={listing.photo_urls[0]} alt={listing.title} className="w-full h-full object-cover" />
+          <img
+            src={listing.photo_urls[0]}
+            alt={listing.title}
+            className={`w-full h-full object-cover ${listing.status === 'sold' ? 'opacity-50' : ''}`}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-stone-400">No photo</div>
+        )}
+        {listing.status === 'sold' && (
+          <span className="absolute top-3 left-3 bg-stone-900 text-white text-sm font-bold px-3 py-1 rounded">
+            SOLD
+          </span>
         )}
         {!isOwner && (
           <button
@@ -204,7 +225,24 @@ export default function ListingDetailPage() {
 
       <div className="flex items-center gap-4 mt-6">
         {isOwner ? (
-          <a href={editUrl} className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800">Edit listing</a>
+          <>
+            <a href={editUrl} className="bg-green-700 text-white rounded-md px-4 py-2 font-semibold hover:bg-green-800">Edit listing</a>
+            <button
+              onClick={handleToggleSold}
+              disabled={togglingSold}
+              className={`rounded-md px-4 py-2 font-semibold disabled:opacity-50 ${
+                listing.status === 'sold'
+                  ? 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                  : 'bg-orange-700 text-white hover:bg-orange-800'
+              }`}
+            >
+              {togglingSold
+                ? 'Updating...'
+                : listing.status === 'sold'
+                ? 'Mark as available'
+                : 'Mark as sold'}
+            </button>
+          </>
         ) : (
           <>
             <button
