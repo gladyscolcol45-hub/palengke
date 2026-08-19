@@ -54,8 +54,12 @@ export default function SignupPage() {
 
   return (
     <div className="max-w-sm mx-auto py-12">
-      <h1 className="text-2xl font-bold mb-6">Sign up for Palengke</h1>
-      <form onSubmit={handleSignup} className="flex flex-col gap-3">
+      <h1 className="text-2xl font-bold mb-2">Create your Palengke account</h1>
+      <p className="text-stone-700 text-sm mb-1 font-medium">How to sign up?</p>
+      <p className="text-stone-500 text-sm mb-6">
+        Make a username and choose your own password. No email needed.
+      </p>
+      <form onSubmit={handleSignup} className="flex flex-col gap-1">
         <input
           required
           placeholder="Username"
@@ -63,6 +67,8 @@ export default function SignupPage() {
           onChange={(e) => setUsername(e.target.value)}
           className="border border-stone-300 rounded-md px-3 py-2"
         />
+        <p className="text-xs text-stone-400 mb-2">3-20 characters: letters, numbers, and underscores only. No spaces.</p>
+
         <input
           type="password"
           required
@@ -71,17 +77,19 @@ export default function SignupPage() {
           onChange={(e) => setPassword(e.target.value)}
           className="border border-stone-300 rounded-md px-3 py-2"
         />
+        <p className="text-xs text-stone-400 mb-2">At least 6 characters.</p>
+
         <button
           type="submit"
           disabled={saving}
-          className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50"
+          className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50 mt-2"
         >
-          {saving ? 'Signing up…' : 'Sign up'}
+          {saving ? 'Creating account…' : 'Create account'}
         </button>
         {error && <p className="text-red-600 text-sm">{error}</p>}
       </form>
       <p className="text-sm text-stone-500 mt-4">
-        Don't have an account? <a href="/login" className="text-green-700 underline">Log in</a>
+        Already have an account? <a href="/login" className="text-green-700 underline">Log in</a>
       </p>
     </div>
   );
