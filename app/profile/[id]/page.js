@@ -56,7 +56,20 @@ export default function ProfilePage() {
           {profile.username ? profile.username[0].toUpperCase() : '?'}
         </div>
         <div>
-          <h1 className="text-xl font-bold">{profile.username || 'Unknown user'}</h1>
+          <h1 className="text-xl font-bold flex items-center gap-1.5">
+            {profile.username || 'Unknown user'}
+            {profile.is_verified && (
+              <span
+                title="Verified Seller"
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-700 text-white text-xs"
+              >
+                ✓
+              </span>
+            )}
+          </h1>
+          {profile.is_verified && (
+            <p className="text-xs text-green-700 font-medium">Verified Seller</p>
+          )}
           {avgRating ? (
             <p className="text-sm text-stone-500">
               <span className="text-yellow-500">★</span> {avgRating} ({reviews.length} review{reviews.length !== 1 ? 's' : ''})

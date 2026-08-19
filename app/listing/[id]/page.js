@@ -18,6 +18,7 @@ export default function ListingDetailPage() {
   const router = useRouter();
   const [listing, setListing] = useState(null);
   const [sellerUsername, setSellerUsername] = useState(null);
+  const [sellerVerified, setSellerVerified] = useState(false);
   const [starting, setStarting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
@@ -40,10 +41,11 @@ export default function ListingDetailPage() {
         if (data && data.seller_id) {
           const { data: sellerProfile } = await supabase
             .from('profiles')
-            .select('username')
+            .select('username, is_verified')
             .eq('id', data.seller_id)
             .single();
           setSellerUsername(sellerProfile ? sellerProfile.username : null);
+          setSellerVerified(!!(sellerProfile && sellerProfile.is_verified));
         }
       });
     supabase.auth.getUser().then(async ({ data }) => {
@@ -220,7 +222,19 @@ export default function ListingDetailPage() {
         P{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
       </p>
       <p className="text-stone-500 text-sm mt-1">{listing.barangay}{listing.barangay && listing.city ? ', ' : ''}{listing.city}</p>
-      {sellerUsername ? <p className="text-sm mt-2">Sold by <a href={profileUrl} className="text-green-700 font-medium hover:underline">{sellerUsername}</a></p> : null}
+      {sellerUsername ? (
+        <p className="text-sm mt-2 flex items-center gap-1">
+          Sold by <a href={profileUrl} className="text-green-700 font-medium hover:underline">{sellerUsername}</a>
+          {sellerVerified && (
+            <span
+              title="Verified Seller"
+              className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-700 text-white text-[10px]"
+            >
+              ✓
+            </span>
+          )}
+        </p>
+      ) : null}
       {listing.description ? <p className="text-stone-700 mt-4">{listing.description}</p> : null}
 
       <div className="flex items-center gap-4 mt-6">

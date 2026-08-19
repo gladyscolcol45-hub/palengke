@@ -8,6 +8,7 @@ const TYPE_ICON = {
   review: '⭐',
   listing_reported: '⚠️',
   listing_removed: '🚫',
+  verified: '✅',
 };
 
 function timeAgo(dateString) {
