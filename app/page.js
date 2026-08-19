@@ -38,26 +38,34 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-stone-200">
-        <button
-          onClick={() => setActiveCategory(null)}
-          className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-            activeCategory === null ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
-          }`}
-        >
-          All
-        </button>
-        {categories.map((c) => (
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-2 overflow-x-auto pb-4 border-b border-stone-200 flex-1">
           <button
-            key={c.id}
-            onClick={() => setActiveCategory(c.id)}
+            onClick={() => setActiveCategory(null)}
             className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-              activeCategory === c.id ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
+              activeCategory === null ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
             }`}
           >
-            {c.name}
+            All
           </button>
-        ))}
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveCategory(c.id)}
+              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
+                activeCategory === c.id ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+        <a
+          href="/map"
+          className="ml-3 mb-4 text-sm font-medium text-green-700 hover:underline whitespace-nowrap"
+        >
+          View on map
+        </a>
       </div>
 
       {loading ? (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import LocationPicker from '@/components/DynamicLocationPicker';
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function NewListingPage() {
   const [form, setForm] = useState({
     title: '', description: '', price: '', unit: 'each',
     category_id: '', barangay: '', city: '', photo: null,
+    latitude: null, longitude: null,
   });
   const [photoPreview, setPhotoPreview] = useState(null);
   const [error, setError] = useState(null);
@@ -60,6 +62,8 @@ export default function NewListingPage() {
       barangay: form.barangay,
       city: form.city,
       photo_urls,
+      latitude: form.latitude,
+      longitude: form.longitude,
     });
 
     setSaving(false);
@@ -125,6 +129,13 @@ export default function NewListingPage() {
             className="border border-stone-300 rounded-md px-3 py-2 flex-1"
           />
         </div>
+
+        <LocationPicker
+          latitude={form.latitude}
+          longitude={form.longitude}
+          onChange={(lat, lng) => setForm({ ...form, latitude: lat, longitude: lng })}
+        />
+
         <div>
           <input
             type="file" accept="image/*"

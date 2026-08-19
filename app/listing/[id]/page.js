@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import MapDisplay from '@/components/DynamicMapDisplay';
 
 const REPORT_REASONS = [
   'Scam or fraud',
@@ -123,6 +124,7 @@ export default function ListingDetailPage() {
   const isOwner = currentUserId && currentUserId === listing.seller_id;
   const editUrl = '/listing/' + listing.id + '/edit';
   const profileUrl = '/profile/' + listing.seller_id;
+  const hasLocation = listing.latitude != null && listing.longitude != null;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -140,6 +142,17 @@ export default function ListingDetailPage() {
       <p className="text-stone-500 text-sm mt-1">{listing.barangay}{listing.barangay && listing.city ? ', ' : ''}{listing.city}</p>
       {sellerUsername ? <p className="text-sm mt-2">Sold by <a href={profileUrl} className="text-green-700 font-medium hover:underline">{sellerUsername}</a></p> : null}
       {listing.description ? <p className="text-stone-700 mt-4">{listing.description}</p> : null}
+
+      {hasLocation && (
+        <div className="mt-4">
+          <p className="text-sm font-medium text-stone-700 mb-1">Location</p>
+          <MapDisplay
+            listings={[listing]}
+            height={220}
+            zoom={14}
+          />
+        </div>
+      )}
 
       <div className="flex items-center gap-4 mt-6">
         {isOwner ? (

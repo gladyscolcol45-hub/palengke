@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import LocationPicker from '@/components/DynamicLocationPicker';
 
 export default function EditListingPage() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export default function EditListingPage() {
   const [form, setForm] = useState({
     title: '', description: '', price: '', unit: 'each',
     category_id: '', barangay: '', city: '', photo: null,
+    latitude: null, longitude: null,
   });
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -55,6 +57,8 @@ export default function EditListingPage() {
         barangay: listing.barangay || '',
         city: listing.city || '',
         photo: null,
+        latitude: listing.latitude || null,
+        longitude: listing.longitude || null,
       });
       setCurrentPhotoUrl(listing.photo_urls?.[0] || null);
       setLoading(false);
@@ -103,6 +107,8 @@ export default function EditListingPage() {
       category_id: form.category_id || null,
       barangay: form.barangay,
       city: form.city,
+      latitude: form.latitude,
+      longitude: form.longitude,
     };
     if (photo_urls) updateData.photo_urls = photo_urls;
 
@@ -177,6 +183,13 @@ export default function EditListingPage() {
             className="border border-stone-300 rounded-md px-3 py-2 flex-1"
           />
         </div>
+
+        <LocationPicker
+          latitude={form.latitude}
+          longitude={form.longitude}
+          onChange={(lat, lng) => setForm({ ...form, latitude: lat, longitude: lng })}
+        />
+
         <div>
           <p className="text-sm text-stone-500 mb-1">Current photo</p>
           {currentPhotoUrl && !photoPreview && (
