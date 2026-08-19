@@ -50,7 +50,7 @@ export default function MessagesPage() {
 
         const profileResult = await supabase
           .from('profiles')
-          .select('username')
+          .select('username, verified_until')
           .eq('id', otherId)
           .single();
 
@@ -76,6 +76,11 @@ export default function MessagesPage() {
           listingTitle: listingResult.data ? listingResult.data.title : 'Listing',
           listingPhoto: listingResult.data && listingResult.data.photo_urls ? listingResult.data.photo_urls[0] : null,
           otherUsername: profileResult.data && profileResult.data.username ? profileResult.data.username : 'Unnamed user',
+          otherVerified: !!(
+            profileResult.data &&
+            profileResult.data.verified_until &&
+            new Date(profileResult.data.verified_until) > new Date()
+          ),
           lastMessage: lastMsg ? lastMsg.content : null,
         });
       }
@@ -135,7 +140,18 @@ export default function MessagesPage() {
                     <p className={`truncate ${chat.isUnread ? 'font-bold text-stone-900' : 'font-medium'}`}>{chat.listingTitle}</p>
                     {chat.isUnread && <span className="w-2 h-2 rounded-full bg-orange-700 flex-shrink-0" />}
                   </div>
-                  <p className="text-sm text-stone-500 truncate">with {chat.otherUsername} · {chat.role === 'selling' ? 'Selling' : 'Buying'}</p>
+                  <p className="text-sm text-stone-500 truncate flex items-center gap-1">
+                    with {chat.otherUsername}
+                    {chat.otherVerified && (
+                      <span
+                        title="Verified Seller"
+                        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-green-700 text-white text-[9px] flex-shrink-0"
+                      >
+                        ✓
+                      </span>
+                    )}
+                    · {chat.role === 'selling' ? 'Selling' : 'Buying'}
+                  </p>
                   <p className={`text-sm truncate ${chat.isUnread ? 'text-stone-700 font-medium' : 'text-stone-400'}`}>
                     {chat.lastMessage ? chat.lastMessage : 'No messages yet'}
                   </p>

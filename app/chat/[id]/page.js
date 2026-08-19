@@ -11,6 +11,8 @@ export default function ChatPage() {
   const [text, setText] = useState('');
   const [userId, setUserId] = useState(null);
   const [otherUserId, setOtherUserId] = useState(null);
+  const [otherUsername, setOtherUsername] = useState(null);
+  const [otherVerified, setOtherVerified] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const bottomRef = useRef(null);
@@ -40,6 +42,16 @@ export default function ChatPage() {
       if (chat && user) {
         const other = chat.buyer_id === user.id ? chat.seller_id : chat.buyer_id;
         setOtherUserId(other);
+
+        const { data: otherProfile } = await supabase
+          .from('profiles')
+          .select('username, verified_until')
+          .eq('id', other)
+          .single();
+        if (otherProfile) {
+          setOtherUsername(otherProfile.username);
+          setOtherVerified(!!(otherProfile.verified_until && new Date(otherProfile.verified_until) > new Date()));
+        }
 
         const readColumn = chat.buyer_id === user.id ? 'buyer_last_read_at' : 'seller_last_read_at';
         await supabase
@@ -175,6 +187,19 @@ export default function ChatPage() {
 
   return (
     <div className="max-w-xl mx-auto flex flex-col h-[70vh]">
+      {otherUsername && (
+        <p className="text-sm font-semibold text-stone-800 mb-2 flex items-center gap-1.5">
+          {otherUsername}
+          {otherVerified && (
+            <span
+              title="Verified Seller"
+              className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-700 text-white text-[10px]"
+            >
+              ✓
+            </span>
+          )}
+        </p>
+      )}
       <div className="flex justify-between items-center mb-2">
         {!reviewSubmitted && otherUserId && (
           <button
