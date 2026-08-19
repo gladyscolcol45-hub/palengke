@@ -53,7 +53,7 @@ export default function AuthNav() {
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-40 bg-white border border-stone-200 rounded-md shadow-lg py-1 z-20">
               <a href={`/profile/${user.id}`} className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>My Profile</a>
-              <a href="/messages" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Messages</a>
+              <a href="/messages" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Chats</a>
               {isAdmin && (
                 <a href="/admin/reports" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Reports (Admin)</a>
               )}
