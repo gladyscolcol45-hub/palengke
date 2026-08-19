@@ -23,7 +23,6 @@ export default function RootLayout({ children }) {
             <Image src="/logo-192.png" alt="Palengke" width={140} height={40} priority />
           </a>
           <nav className="flex gap-4 text-sm items-center">
-            <a href="/" className="text-sm font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-md">Home</a>
             <AuthNav />
           </nav>
         </header>
