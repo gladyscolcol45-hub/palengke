@@ -317,6 +317,21 @@ export default function SettingsPage() {
         )}
       </div>
 
+      <div className="mt-10">
+        <h2 className="text-lg font-bold mb-3">About</h2>
+        <div className="flex flex-col gap-2 text-sm">
+          <a href="/about" className="text-green-700 hover:underline">About Palengke</a>
+          <a href="/terms" className="text-green-700 hover:underline">Terms of Service</a>
+          <a href="/privacy" className="text-green-700 hover:underline">Privacy Policy</a>
+          <a
+            href="mailto:gladyscolcol45@gmail.com?subject=Palengke%20app%20problem"
+            className="text-green-700 hover:underline"
+          >
+            Report a problem
+          </a>
+        </div>
+      </div>
+
       <div className="mt-10 border border-red-200 rounded-lg p-4 bg-red-50">
         <h2 className="text-lg font-bold mb-1 text-red-800">Delete account</h2>
         <p className="text-sm text-red-700 mb-3">

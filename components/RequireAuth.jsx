@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 
-const PUBLIC_PATHS = ['/login', '/signup'];
+const PUBLIC_PATHS = ['/login', '/signup', '/about', '/terms', '/privacy'];
 
 export default function RequireAuth({ children }) {
   const [checking, setChecking] = useState(true);
