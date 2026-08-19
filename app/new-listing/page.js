@@ -132,6 +132,8 @@ export default function NewListingPage() {
             <option value="each">each</option>
             <option value="kg">per kg</option>
             <option value="bundle">per bundle</option>
+            <option value="night">per night</option>
+            <option value="group">per group</option>
           </select>
         </div>
         <select
