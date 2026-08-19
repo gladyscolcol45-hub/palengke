@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 export default function AuthNav() {
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -11,6 +12,16 @@ export default function AuthNav() {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data?.user || null);
       setLoading(false);
+      if (data?.user) {
+        supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', data.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            setIsAdmin(!!(profile && profile.is_admin));
+          });
+      }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -41,6 +52,9 @@ export default function AuthNav() {
           <div className="absolute right-0 mt-2 w-40 bg-white border border-stone-200 rounded-md shadow-lg py-1 z-20">
             <a href={`/profile/${user.id}`} className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>My Profile</a>
             <a href="/messages" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Messages</a>
+            {isAdmin && (
+              <a href="/admin/reports" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Reports (Admin)</a>
+            )}
             <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700">Log out</button>
             <a href="/settings" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Settings</a>
           </div>
