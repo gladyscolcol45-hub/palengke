@@ -45,9 +45,11 @@ export default function HomePage() {
     load();
   }, [activeCategory, searchTerm]);
 
+  const activeCategoryObj = categories.find((c) => c.id === activeCategory);
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex gap-2 overflow-x-auto pb-4 border-b border-stone-200 flex-1">
           <button
             onClick={() => setActiveCategory(null)}
@@ -76,6 +78,10 @@ export default function HomePage() {
           View on map
         </a>
       </div>
+
+      {activeCategoryObj && activeCategoryObj.description && (
+        <p className="text-sm text-stone-500 mb-4">{activeCategoryObj.description}</p>
+      )}
 
       {loading ? (
         <p className="text-stone-400 text-sm">Loading listings…</p>
