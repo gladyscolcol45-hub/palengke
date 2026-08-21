@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import { geocodeAddress } from '@/lib/geocode';
 import LocationPicker from '@/components/DynamicLocationPicker';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 
 const MAX_PHOTOS = 5;
 
@@ -233,7 +234,7 @@ export default function EditListingPage() {
         >
           <option value="">Select a category</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>{getCategoryIcon(c.slug)} {c.name}</option>
           ))}
         </select>
         <div className="flex gap-2">

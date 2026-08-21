@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import ListingCard from '@/components/ListingCard';
 import { useSearch } from '@/components/SearchContext';
+import { getCategoryIcon } from '@/lib/categoryIcons';
 
 export default function HomePage() {
   const [listings, setListings] = useState([]);
@@ -57,7 +58,7 @@ export default function HomePage() {
               activeCategory === null ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
             }`}
           >
-            All
+            🛍️ All
           </button>
           {categories.map((c) => (
             <button
@@ -67,7 +68,7 @@ export default function HomePage() {
                 activeCategory === c.id ? 'bg-green-700 text-white' : 'bg-stone-100 text-stone-600'
               }`}
             >
-              {c.name}
+              {getCategoryIcon(c.slug)} {c.name}
             </button>
           ))}
         </div>
