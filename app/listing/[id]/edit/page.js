@@ -72,7 +72,7 @@ export default function EditListingPage() {
 
     load();
 
-    supabase.from('categories').select('*').order('id').then(({ data }) => setCategories(data || []));
+    supabase.from('categories').select('*').order('name').then(({ data }) => setCategories(data || []));
   }, [id, router]);
 
   async function autoLocateFromAddress(barangay, city) {

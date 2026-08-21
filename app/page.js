@@ -18,7 +18,7 @@ export default function HomePage() {
     async function load() {
       setLoading(true);
 
-      const { data: cats } = await supabase.from('categories').select('*').order('id');
+      const { data: cats } = await supabase.from('categories').select('*').order('name');
       setCategories(cats || []);
 
       let query = supabase
