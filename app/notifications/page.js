@@ -9,6 +9,8 @@ const TYPE_ICON = {
   listing_reported: '⚠️',
   listing_removed: '🚫',
   verified: '✅',
+  verification_requested: '🧾',
+  verification_rejected: '❌',
 };
 
 function timeAgo(dateString) {

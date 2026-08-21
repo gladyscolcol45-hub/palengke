@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [unblockingId, setUnblockingId] = useState(null);
 
   const [verifiedUntil, setVerifiedUntil] = useState(null);
+  const [verificationRequest, setVerificationRequest] = useState(null);
+  const [requestingVerification, setRequestingVerification] = useState(false);
 
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -60,6 +62,15 @@ export default function SettingsPage() {
         setAvatarUrl(profile.avatar_url || null);
         setVerifiedUntil(profile.verified_until || null);
       }
+
+      const requestResult = await supabase
+        .from('verification_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setVerificationRequest(requestResult.data || null);
 
       setLoading(false);
       loadBlockedUsers(user.id);
@@ -116,6 +127,42 @@ export default function SettingsPage() {
     if (!unblockError) {
       setBlockedUsers((prev) => prev.filter((u) => u.blockId !== blockId));
     }
+  }
+
+  async function handleRequestVerification() {
+    if (!userId) return;
+    setRequestingVerification(true);
+    const supabase = createClient();
+
+    const insertResult = await supabase
+      .from('verification_requests')
+      .insert({ user_id: userId, status: 'pending' })
+      .select()
+      .single();
+
+    if (insertResult.error) {
+      setRequestingVerification(false);
+      alert('Something went wrong sending your request. Please try again.');
+      return;
+    }
+
+    // Best-effort: let admins know a request is waiting. If this fails the
+    // request itself was still saved, so the admin will still see it in the
+    // Verify sellers queue next time they check.
+    const adminsResult = await supabase.from('profiles').select('id').eq('is_admin', true);
+    const admins = adminsResult.data || [];
+    const sellerName = form.full_name || 'A seller';
+    for (let i = 0; i < admins.length; i++) {
+      await supabase.from('notifications').insert({
+        user_id: admins[i].id,
+        type: 'verification_requested',
+        message: sellerName + ' requested the Verified Seller badge — review it in Verify sellers.',
+        link: '/admin/users',
+      });
+    }
+
+    setVerificationRequest(insertResult.data);
+    setRequestingVerification(false);
   }
 
   async function handleDeleteAccount() {
@@ -214,6 +261,8 @@ export default function SettingsPage() {
   const daysLeft = isVerified
     ? Math.max(1, Math.ceil((new Date(verifiedUntil) - new Date()) / (1000 * 60 * 60 * 24)))
     : 0;
+  const hasPendingRequest = !!verificationRequest && verificationRequest.status === 'pending';
+  const wasRejected = !!verificationRequest && verificationRequest.status === 'rejected';
 
   return (
     <div className="max-w-lg mx-auto py-8">
@@ -231,15 +280,45 @@ export default function SettingsPage() {
               Verified Seller
             </p>
             <p className="text-sm text-green-700 mt-1">
-              Your badge is active for {daysLeft} more day{daysLeft !== 1 ? 's' : ''}. To keep it after that, send your renewal payment and contact the admin to extend it.
+              Your badge is active for {daysLeft} more day{daysLeft !== 1 ? 's' : ''}. To keep it after that, send your renewal payment and tap the button below again a few days before it expires.
             </p>
           </>
         ) : (
           <>
             <p className="text-sm font-semibold text-stone-700">Not a Verified Seller yet</p>
-            <p className="text-sm text-stone-500 mt-1">
-              Want the checkmark badge on your profile and listings? Contact the admin to find out how.
-            </p>
+
+            {hasPendingRequest ? (
+              <p className="text-sm text-stone-500 mt-1">
+                Your payment is being reviewed by the admin. You&apos;ll get a notification once it&apos;s confirmed &mdash; usually within a day.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-stone-500 mt-1">
+                  Get the checkmark badge on your profile and listings for 30 days.
+                </p>
+
+                {wasRejected && (
+                  <p className="text-sm text-red-600 mt-2">
+                    Your last request couldn&apos;t be confirmed. Please double-check your payment, then try again below.
+                  </p>
+                )}
+
+                <div className="mt-3 bg-white border border-stone-200 rounded-md p-3 text-sm">
+                  <p className="font-medium text-stone-700">Step 1 &mdash; Send ₱99 via GCash</p>
+                  <p className="text-stone-500 mt-0.5">GCash: Gladys C. &mdash; 0963 307 7826</p>
+                  <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Tap the button below</p>
+                  <p className="text-stone-500 mt-0.5">The admin will confirm your payment and activate your badge, usually within a day.</p>
+                </div>
+
+                <button
+                  onClick={handleRequestVerification}
+                  disabled={requestingVerification}
+                  className="mt-3 bg-green-700 text-white rounded-md px-4 py-2 text-sm font-semibold hover:bg-green-800 disabled:opacity-50"
+                >
+                  {requestingVerification ? 'Submitting...' : "I've Paid — Request Verification"}
+                </button>
+              </>
+            )}
           </>
         )}
       </div>

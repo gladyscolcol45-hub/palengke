@@ -22,6 +22,10 @@ export default function AdminUsersPage() {
   const [error, setError] = useState(null);
   const [actioningId, setActioningId] = useState(null);
 
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [actioningRequestId, setActioningRequestId] = useState(null);
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -39,8 +43,30 @@ export default function AdminUsersPage() {
         .eq('id', user.id)
         .single();
 
-      setIsAdmin(!!(profileResult.data && profileResult.data.is_admin));
+      const admin = !!(profileResult.data && profileResult.data.is_admin);
+      setIsAdmin(admin);
       setChecking(false);
+
+      if (admin) {
+        loadPending();
+      }
+    }
+
+    async function loadPending() {
+      setPendingLoading(true);
+      const supabase2 = createClient();
+      const sessionResult = await supabase2.auth.getSession();
+      const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+      const response = await fetch('/api/admin/users', {
+        headers: { Authorization: 'Bearer ' + accessToken },
+      });
+      const result = await response.json();
+      setPendingLoading(false);
+
+      if (response.ok) {
+        setPendingRequests(result.pendingRequests || []);
+      }
     }
 
     init();
@@ -66,6 +92,9 @@ export default function AdminUsersPage() {
     }
 
     setUsers(result.users || []);
+    if (result.pendingRequests) {
+      setPendingRequests(result.pendingRequests);
+    }
   }
 
   async function handleAction(userId, action) {
@@ -98,6 +127,38 @@ export default function AdminUsersPage() {
     );
   }
 
+  async function handleRequestAction(requestId, userId, action) {
+    setActioningRequestId(requestId);
+    const supabase = createClient();
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+    const response = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: JSON.stringify({ userId, requestId, action }),
+    });
+
+    const result = await response.json();
+    setActioningRequestId(null);
+
+    if (!response.ok) {
+      alert(result.error || 'Something went wrong.');
+      return;
+    }
+
+    setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId));
+
+    if (action === 'approve_request') {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, verified_until: result.verifiedUntil } : u))
+      );
+    }
+  }
+
   if (checking) {
     return <p className="text-stone-400 text-sm">Loading...</p>;
   }
@@ -112,6 +173,52 @@ export default function AdminUsersPage() {
       <p className="text-sm text-stone-500 mb-6">
         Verifying a seller lasts 30 days. Renew it any time by tapping &quot;Extend 30 days&quot; once they&apos;ve paid again.
       </p>
+
+      <div className="mb-8">
+        <h2 className="text-lg font-bold mb-1">Pending requests</h2>
+        <p className="text-sm text-stone-500 mb-3">
+          Sellers who tapped &quot;I&apos;ve Paid&quot; in Settings show up here. Confirm the GCash payment came in before approving.
+        </p>
+
+        {pendingLoading ? (
+          <p className="text-stone-400 text-sm">Loading...</p>
+        ) : pendingRequests.length === 0 ? (
+          <p className="text-stone-400 text-sm">No pending requests right now.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {pendingRequests.map((r) => (
+              <div
+                key={r.requestId}
+                className="flex items-center justify-between border border-green-200 bg-green-50 rounded-lg p-3"
+              >
+                <div>
+                  <p className="font-medium">{r.username || 'Unnamed user'}</p>
+                  {r.fullName && <p className="text-sm text-stone-500">{r.fullName}</p>}
+                  <p className="text-xs text-stone-400 mt-0.5">Requested {formatDate(r.createdAt)}</p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleRequestAction(r.requestId, r.userId, 'approve_request')}
+                    disabled={actioningRequestId === r.requestId}
+                    className="text-sm bg-green-700 text-white rounded-md px-3 py-1.5 hover:bg-green-800 disabled:opacity-50"
+                  >
+                    {actioningRequestId === r.requestId ? 'Working...' : 'Approve'}
+                  </button>
+                  <button
+                    onClick={() => handleRequestAction(r.requestId, r.userId, 'reject_request')}
+                    disabled={actioningRequestId === r.requestId}
+                    className="text-sm bg-stone-100 text-stone-600 rounded-md px-3 py-1.5 hover:bg-stone-200 disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <h2 className="text-lg font-bold mb-3">Manage any seller</h2>
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
         <input

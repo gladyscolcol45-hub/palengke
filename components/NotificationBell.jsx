@@ -9,6 +9,7 @@ export default function NotificationBell() {
   useEffect(() => {
     const supabase = createClient();
     let channel;
+    let cancelled = false;
 
     async function checkUnread(userId) {
       if (!userId) {
@@ -20,13 +21,19 @@ export default function NotificationBell() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('read', false);
-      setHasUnread(!!count && count > 0);
+      if (!cancelled) {
+        setHasUnread(!!count && count > 0);
+      }
     }
 
     function subscribe(userId) {
-      if (!userId) return;
+      if (!userId || cancelled) return;
+      // Include a random suffix so two effect runs (e.g. React StrictMode's
+      // dev-only double-invoke) never both try to subscribe a channel with
+      // the exact same name at the same time.
+      const uniqueSuffix = Math.random().toString(36).slice(2);
       channel = supabase
-        .channel(`notifications-${userId}`)
+        .channel(`notifications-${userId}-${uniqueSuffix}`)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
@@ -36,6 +43,7 @@ export default function NotificationBell() {
     }
 
     supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
       const currentUser = data?.user || null;
       setUser(currentUser);
       checkUnread(currentUser?.id || null);
@@ -43,11 +51,13 @@ export default function NotificationBell() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
       setUser(session?.user || null);
       checkUnread(session?.user?.id || null);
     });
 
     return () => {
+      cancelled = true;
       listener.subscription.unsubscribe();
       if (channel) supabase.removeChannel(channel);
     };
