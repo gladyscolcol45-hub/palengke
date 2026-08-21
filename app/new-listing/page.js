@@ -22,7 +22,15 @@ export default function NewListingPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.from('categories').select('*').order('name').then(({ data }) => setCategories(data || []));
+    supabase.from('categories').select('*').order('name').then(({ data }) => {
+      // Alphabetical, but "Other" always goes last no matter where it falls in the alphabet.
+      const sorted = (data || []).slice().sort((a, b) => {
+        if (a.name === 'Other') return 1;
+        if (b.name === 'Other') return -1;
+        return 0;
+      });
+      setCategories(sorted);
+    });
   }, []);
 
   async function autoLocateFromAddress(barangay, city) {

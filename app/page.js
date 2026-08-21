@@ -19,7 +19,13 @@ export default function HomePage() {
       setLoading(true);
 
       const { data: cats } = await supabase.from('categories').select('*').order('name');
-      setCategories(cats || []);
+      // Alphabetical, but "Other" always goes last no matter where it falls in the alphabet.
+      const sortedCats = (cats || []).slice().sort((a, b) => {
+        if (a.name === 'Other') return 1;
+        if (b.name === 'Other') return -1;
+        return 0;
+      });
+      setCategories(sortedCats);
 
       let query = supabase
         .from('listings')
