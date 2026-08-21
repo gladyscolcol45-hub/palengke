@@ -5,5 +5,5 @@
 alter table categories add column if not exists description text;
 
 update categories
-set description = 'Selling halo-halo, BBQ, banana-q, or other homemade snacks? Add photos and your location so buyers can find you.'
+set description = 'Selling Halo-Halo, BBQ, Burgers & Fries, Banana-q, or other homemade snacks? Add photos and your location so buyers can find you'
 where slug = 'food-snacks';
