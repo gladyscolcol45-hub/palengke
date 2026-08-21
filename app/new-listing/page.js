@@ -6,17 +6,20 @@ import { createClient } from '@/lib/supabaseClient';
 import { geocodeAddress } from '@/lib/geocode';
 import LocationPicker from '@/components/DynamicLocationPicker';
 
+const MAX_PHOTOS = 5;
+
 export default function NewListingPage() {
   const router = useRouter();
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
     title: '', description: '', price: '', unit: 'each',
-    category_id: '', barangay: '', city: '', photo: null,
+    category_id: '', barangay: '', city: '',
     latitude: null, longitude: null,
   });
+  const [photos, setPhotos] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
   const [locationSource, setLocationSource] = useState(null); // null | 'auto' | 'manual'
   const [geocoding, setGeocoding] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -32,6 +35,20 @@ export default function NewListingPage() {
       setCategories(sorted);
     });
   }, []);
+
+  function handleAddPhotos(e) {
+    const selected = Array.from(e.target.files || []);
+    const combined = [...photos, ...selected].slice(0, MAX_PHOTOS);
+    setPhotos(combined);
+    setPhotoPreviews(combined.map((file) => URL.createObjectURL(file)));
+    e.target.value = ''; // lets the user pick the same file again later if they remove it
+  }
+
+  function handleRemovePhoto(index) {
+    const updated = photos.filter((_, i) => i !== index);
+    setPhotos(updated);
+    setPhotoPreviews(updated.map((file) => URL.createObjectURL(file)));
+  }
 
   async function autoLocateFromAddress(barangay, city) {
     if (locationSource === 'manual') return; // don't override a manual pin
@@ -73,12 +90,13 @@ export default function NewListingPage() {
       }
     }
 
-    let photo_urls = [];
-    if (form.photo) {
-      const fileName = `${user.id}/${Date.now()}-${form.photo.name}`;
+    const photo_urls = [];
+    for (let i = 0; i < photos.length; i++) {
+      const file = photos[i];
+      const fileName = `${user.id}/${Date.now()}-${i}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('listing-photos')
-        .upload(fileName, form.photo);
+        .upload(fileName, file);
 
       if (uploadError) {
         setError(uploadError.message);
@@ -86,7 +104,7 @@ export default function NewListingPage() {
         return;
       }
       const { data: publicUrl } = supabase.storage.from('listing-photos').getPublicUrl(fileName);
-      photo_urls = [publicUrl.publicUrl];
+      photo_urls.push(publicUrl.publicUrl);
     }
 
     const { error: insertError } = await supabase.from('listings').insert({
@@ -185,21 +203,44 @@ export default function NewListingPage() {
         />
 
         <div>
-          <input
-            type="file" accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files[0];
-              setForm({ ...form, photo: file });
-              setPhotoPreview(file ? URL.createObjectURL(file) : null);
-            }}
-          />
-          {photoPreview && (
-            <img
-              src={photoPreview}
-              alt="Preview"
-              className="mt-2 w-32 h-32 object-cover rounded-md border border-stone-200"
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Photos ({photos.length}/{MAX_PHOTOS})
+          </label>
+          {photoPreviews.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {photoPreviews.map((url, i) => (
+                <div key={i} className="relative w-24 h-24">
+                  <img
+                    src={url}
+                    alt={`Preview ${i + 1}`}
+                    className="w-24 h-24 object-cover rounded-md border border-stone-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(i)}
+                    aria-label="Remove photo"
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-stone-900 text-white text-sm flex items-center justify-center hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 bg-green-700 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      Cover
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {photos.length < MAX_PHOTOS && (
+            <input
+              type="file" accept="image/*" multiple
+              onChange={handleAddPhotos}
             />
           )}
+          <p className="text-xs text-stone-400 mt-1">
+            Up to {MAX_PHOTOS} photos. The first photo is used as the cover image.
+          </p>
         </div>
         <button
           type="submit" disabled={saving}

@@ -6,23 +6,28 @@ import { createClient } from '@/lib/supabaseClient';
 import { geocodeAddress } from '@/lib/geocode';
 import LocationPicker from '@/components/DynamicLocationPicker';
 
+const MAX_PHOTOS = 5;
+
 export default function EditListingPage() {
   const { id } = useParams();
   const router = useRouter();
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
     title: '', description: '', price: '', unit: 'each',
-    category_id: '', barangay: '', city: '', photo: null,
+    category_id: '', barangay: '', city: '',
     latitude: null, longitude: null,
   });
   const [locationSource, setLocationSource] = useState(null); // null | 'auto' | 'manual'
   const [geocoding, setGeocoding] = useState(false);
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
+  const [existingPhotos, setExistingPhotos] = useState([]);
+  const [newPhotos, setNewPhotos] = useState([]);
+  const [newPhotoPreviews, setNewPhotoPreviews] = useState([]);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notAllowed, setNotAllowed] = useState(false);
+
+  const totalPhotos = existingPhotos.length + newPhotos.length;
 
   useEffect(() => {
     const supabase = createClient();
@@ -59,14 +64,13 @@ export default function EditListingPage() {
         category_id: listing.category_id || '',
         barangay: listing.barangay || '',
         city: listing.city || '',
-        photo: null,
         latitude: listing.latitude || null,
         longitude: listing.longitude || null,
       });
       if (listing.latitude != null && listing.longitude != null) {
         setLocationSource('manual');
       }
-      setCurrentPhotoUrl(listing.photo_urls?.[0] || null);
+      setExistingPhotos(listing.photo_urls || []);
       setLoading(false);
     }
 
@@ -100,6 +104,26 @@ export default function EditListingPage() {
     setLocationSource(source);
   }
 
+  function handleRemoveExistingPhoto(index) {
+    setExistingPhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleAddPhotos(e) {
+    const selected = Array.from(e.target.files || []);
+    const remainingSlots = Math.max(0, MAX_PHOTOS - existingPhotos.length - newPhotos.length);
+    const toAdd = selected.slice(0, remainingSlots);
+    const combined = [...newPhotos, ...toAdd];
+    setNewPhotos(combined);
+    setNewPhotoPreviews(combined.map((file) => URL.createObjectURL(file)));
+    e.target.value = '';
+  }
+
+  function handleRemoveNewPhoto(index) {
+    const updated = newPhotos.filter((_, i) => i !== index);
+    setNewPhotos(updated);
+    setNewPhotoPreviews(updated.map((file) => URL.createObjectURL(file)));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
@@ -123,12 +147,13 @@ export default function EditListingPage() {
       }
     }
 
-    let photo_urls;
-    if (form.photo) {
-      const fileName = `${user.id}/${Date.now()}-${form.photo.name}`;
+    const uploadedUrls = [];
+    for (let i = 0; i < newPhotos.length; i++) {
+      const file = newPhotos[i];
+      const fileName = `${user.id}/${Date.now()}-${i}-${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('listing-photos')
-        .upload(fileName, form.photo);
+        .upload(fileName, file);
 
       if (uploadError) {
         setError(uploadError.message);
@@ -136,7 +161,7 @@ export default function EditListingPage() {
         return;
       }
       const { data: publicUrl } = supabase.storage.from('listing-photos').getPublicUrl(fileName);
-      photo_urls = [publicUrl.publicUrl];
+      uploadedUrls.push(publicUrl.publicUrl);
     }
 
     const updateData = {
@@ -149,8 +174,8 @@ export default function EditListingPage() {
       city: form.city,
       latitude,
       longitude,
+      photo_urls: [...existingPhotos, ...uploadedUrls],
     };
-    if (photo_urls) updateData.photo_urls = photo_urls;
 
     const { error: updateError } = await supabase
       .from('listings')
@@ -242,31 +267,70 @@ export default function EditListingPage() {
         />
 
         <div>
-          <p className="text-sm text-stone-500 mb-1">Current photo</p>
-          {currentPhotoUrl && !photoPreview && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={currentPhotoUrl}
-              alt="Current"
-              className="w-32 h-32 object-cover rounded-md border border-stone-200 mb-2"
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Photos ({totalPhotos}/{MAX_PHOTOS})
+          </label>
+
+          {(existingPhotos.length > 0 || newPhotoPreviews.length > 0) && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {existingPhotos.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <div key={'existing-' + i} className="relative w-24 h-24">
+                  <img
+                    src={url}
+                    alt={`Photo ${i + 1}`}
+                    className="w-24 h-24 object-cover rounded-md border border-stone-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExistingPhoto(i)}
+                    aria-label="Remove photo"
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-stone-900 text-white text-sm flex items-center justify-center hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 bg-green-700 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      Cover
+                    </span>
+                  )}
+                </div>
+              ))}
+              {newPhotoPreviews.map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <div key={'new-' + i} className="relative w-24 h-24">
+                  <img
+                    src={url}
+                    alt={`New photo ${i + 1}`}
+                    className="w-24 h-24 object-cover rounded-md border border-stone-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveNewPhoto(i)}
+                    aria-label="Remove photo"
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-stone-900 text-white text-sm flex items-center justify-center hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                  {existingPhotos.length === 0 && i === 0 && (
+                    <span className="absolute bottom-1 left-1 bg-green-700 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      Cover
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {totalPhotos < MAX_PHOTOS && (
+            <input
+              type="file" accept="image/*" multiple
+              onChange={handleAddPhotos}
             />
           )}
-          <input
-            type="file" accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files[0];
-              setForm({ ...form, photo: file });
-              setPhotoPreview(file ? URL.createObjectURL(file) : null);
-            }}
-          />
-          {photoPreview && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoPreview}
-              alt="New preview"
-              className="mt-2 w-32 h-32 object-cover rounded-md border border-stone-200"
-            />
-          )}
+          <p className="text-xs text-stone-400 mt-1">
+            Up to {MAX_PHOTOS} photos. The first photo is used as the cover image.
+          </p>
         </div>
         <button
           type="submit" disabled={saving}

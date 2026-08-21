@@ -32,12 +32,14 @@ export default function ListingDetailPage() {
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [togglingSold, setTogglingSold] = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.from('listings').select('*').eq('id', id).single()
       .then(async ({ data }) => {
         setListing(data);
+        setActivePhotoIndex(0);
         if (data && data.seller_id) {
           const { data: sellerProfile } = await supabase
             .from('profiles')
@@ -184,10 +186,10 @@ export default function ListingDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="relative aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4">
-        {listing.photo_urls && listing.photo_urls[0] ? (
+      <div className="relative aspect-square bg-stone-100 rounded-lg overflow-hidden mb-2">
+        {listing.photo_urls && listing.photo_urls[activePhotoIndex] ? (
           <img
-            src={listing.photo_urls[0]}
+            src={listing.photo_urls[activePhotoIndex]}
             alt={listing.title}
             className={`w-full h-full object-cover ${listing.status === 'sold' ? 'opacity-50' : ''}`}
           />
@@ -219,6 +221,26 @@ export default function ListingDetailPage() {
           </button>
         )}
       </div>
+
+      {listing.photo_urls && listing.photo_urls.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto mb-4">
+          {listing.photo_urls.map((url, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setActivePhotoIndex(i)}
+              aria-label={`Show photo ${i + 1}`}
+              className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 ${
+                i === activePhotoIndex ? 'border-green-700' : 'border-transparent'
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt={`${listing.title} photo ${i + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold">{listing.title}</h1>
       <p className="text-orange-700 font-bold text-xl mt-1">
         P{Number(listing.price).toLocaleString()} <span className="text-stone-400 font-normal text-base">/ {listing.unit}</span>
