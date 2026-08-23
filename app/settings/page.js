@@ -33,6 +33,12 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportMessage, setReportMessage] = useState('');
+  const [reportSending, setReportSending] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportError, setReportError] = useState(null);
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -206,6 +212,49 @@ export default function SettingsPage() {
 
     await supabase.auth.signOut();
     router.push('/login');
+  }
+
+  async function handleSendReport() {
+    if (!reportMessage.trim()) return;
+
+    setReportSending(true);
+    setReportError(null);
+    const supabase = createClient();
+
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+    if (!accessToken) {
+      setReportSending(false);
+      setReportError('You need to be logged in to do this.');
+      return;
+    }
+
+    const response = await fetch('/api/report-problem', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: JSON.stringify({ message: reportMessage.trim() }),
+    });
+
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (e) {
+      result = {};
+    }
+
+    setReportSending(false);
+
+    if (!response.ok) {
+      setReportError(result.error || 'Something went wrong. Please try again.');
+      return;
+    }
+
+    setReportMessage('');
+    setReportSent(true);
   }
 
   async function handleSave(e) {
@@ -435,12 +484,50 @@ export default function SettingsPage() {
           <a href="/about" className="text-green-700 hover:underline">About Palengke</a>
           <a href="/terms" className="text-green-700 hover:underline">Terms of Service</a>
           <a href="/privacy" className="text-green-700 hover:underline">Privacy Policy</a>
-          <a
-            href="mailto:palengke.app23@gmail.com?subject=Palengke%20app%20problem"
-            className="text-green-700 hover:underline"
-          >
-            Report a problem
-          </a>
+
+          {!reportOpen ? (
+            <button
+              type="button"
+              onClick={function () { setReportOpen(true); setReportSent(false); setReportError(null); }}
+              className="text-green-700 hover:underline text-left"
+            >
+              Report a problem
+            </button>
+          ) : reportSent ? (
+            <p className="text-green-700">Thanks &mdash; we got your report and will look into it.</p>
+          ) : (
+            <div className="mt-1 border border-stone-200 rounded-md p-3">
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                What went wrong?
+              </label>
+              <textarea
+                value={reportMessage}
+                onChange={function (e) { setReportMessage(e.target.value); }}
+                rows={4}
+                maxLength={2000}
+                placeholder="Describe the problem you ran into..."
+                className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm"
+              />
+              {reportError && <p className="text-red-600 text-sm mt-1">{reportError}</p>}
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={handleSendReport}
+                  disabled={reportSending || !reportMessage.trim()}
+                  className="bg-green-700 text-white rounded-md px-4 py-1.5 text-sm font-semibold hover:bg-green-800 disabled:opacity-50"
+                >
+                  {reportSending ? 'Sending...' : 'Send'}
+                </button>
+                <button
+                  type="button"
+                  onClick={function () { setReportOpen(false); setReportError(null); }}
+                  className="text-stone-500 text-sm px-2 hover:text-stone-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
