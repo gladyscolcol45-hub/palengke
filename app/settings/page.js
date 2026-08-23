@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabaseClient';
 export default function SettingsPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
 
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const [reportSent, setReportSent] = useState(false);
   const [reportError, setReportError] = useState(null);
 
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
@@ -55,6 +57,7 @@ export default function SettingsPage() {
       const profile = profileResult.data;
       if (profile) {
         setFullName(profile.full_name || '');
+        setUsername(profile.username || '');
         setVerifiedUntil(profile.verified_until || null);
       }
 
@@ -251,8 +254,12 @@ export default function SettingsPage() {
     setPasswordError(null);
     setPasswordChanged(false);
 
+    if (!currentPassword) {
+      setPasswordError('Enter your current password.');
+      return;
+    }
     if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters.');
+      setPasswordError('New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -262,6 +269,20 @@ export default function SettingsPage() {
 
     setChangingPassword(true);
     const supabase = createClient();
+
+    // Confirm they actually know the current password before changing it.
+    const cleanUsername = username.trim().toLowerCase();
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: `${cleanUsername}@palengke.local`,
+      password: currentPassword,
+    });
+
+    if (reauthError) {
+      setChangingPassword(false);
+      setPasswordError('Current password is incorrect.');
+      return;
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     setChangingPassword(false);
 
@@ -270,6 +291,7 @@ export default function SettingsPage() {
       return;
     }
 
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
     setPasswordChanged(true);
@@ -363,6 +385,13 @@ export default function SettingsPage() {
         <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
           <input
             type="password"
+            placeholder="Current password"
+            value={currentPassword}
+            onChange={function (e) { setCurrentPassword(e.target.value); }}
+            className="w-full border border-stone-300 rounded-md px-3 py-2"
+          />
+          <input
+            type="password"
             placeholder="New password"
             value={newPassword}
             onChange={function (e) { setNewPassword(e.target.value); }}
@@ -379,7 +408,7 @@ export default function SettingsPage() {
           {passwordChanged && <p className="text-green-700 text-sm">Password updated!</p>}
           <button
             type="submit"
-            disabled={changingPassword || !newPassword || !confirmPassword}
+            disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
             className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50 self-start px-4"
           >
             {changingPassword ? 'Updating...' : 'Update password'}
