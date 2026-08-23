@@ -8,7 +8,7 @@ const resendApiKey = process.env.RESEND_API_KEY;
 // Same admin contact address used for "Report a problem" emails.
 const ADMIN_EMAIL = 'palengke.app23@gmail.com';
 
-async function sendAdminEmail(username, phone) {
+async function sendAdminEmail(username, email) {
   if (!resendApiKey) return;
   try {
     await fetch('https://api.resend.com/emails', {
@@ -21,7 +21,7 @@ async function sendAdminEmail(username, phone) {
         from: 'Palengke <onboarding@resend.dev>',
         to: [ADMIN_EMAIL],
         subject: `Palengke password reset request from ${username}`,
-        text: `${username} requested a password reset.\nPhone on file: ${phone || 'none'}\n\nVerify who they are, then approve it here: https://palengke-ten.vercel.app/admin/password-resets`,
+        text: `${username} requested a password reset.\nEmail on file: ${email || 'none'}\n\nApprove it here (this will also try to email them the temp password automatically): https://palengke-ten.vercel.app/admin/password-resets`,
       }),
     });
   } catch (e) {
@@ -47,7 +47,7 @@ export async function POST(request) {
 
   const profileResult = await supabaseAdmin
     .from('profiles')
-    .select('id, username, phone')
+    .select('id, username, email, phone')
     .ilike('username', username)
     .maybeSingle();
 
@@ -66,6 +66,7 @@ export async function POST(request) {
     await supabaseAdmin.from('password_reset_requests').insert({
       user_id: profile.id,
       username: profile.username,
+      email: profile.email,
       phone: profile.phone,
     });
 
@@ -84,7 +85,7 @@ export async function POST(request) {
       });
     }
 
-    await sendAdminEmail(profile.username, profile.phone);
+    await sendAdminEmail(profile.username, profile.email);
   }
 
   return genericResponse;

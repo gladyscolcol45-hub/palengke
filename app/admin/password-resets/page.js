@@ -16,6 +16,7 @@ export default function AdminPasswordResetsPage() {
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [revealedPasswords, setRevealedPasswords] = useState({});
+  const [emailedStatus, setEmailedStatus] = useState({});
 
   useEffect(() => {
     const supabase = createClient();
@@ -83,6 +84,7 @@ export default function AdminPasswordResetsPage() {
 
     if (action === 'approve') {
       setRevealedPasswords((prev) => ({ ...prev, [requestId]: result.tempPassword }));
+      setEmailedStatus((prev) => ({ ...prev, [requestId]: !!result.emailed }));
     } else {
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
     }
@@ -95,10 +97,11 @@ export default function AdminPasswordResetsPage() {
     <div className="max-w-2xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-1">Password reset requests</h1>
       <p className="text-sm text-stone-500 mb-6">
-        Before approving, verify the person&apos;s identity yourself (call/text the phone number
-        shown, or confirm through another channel you trust) &mdash; approving generates a
-        temporary password immediately. After approving, copy the temp password shown and send it
-        to them directly; it&apos;s only ever shown once here.
+        Before approving, verify the person&apos;s identity yourself (their email/phone on file, or
+        another channel you trust) &mdash; approving generates a temporary password immediately
+        and tries to email it to them automatically. If that email doesn&apos;t go through, the
+        temp password is still shown below so you can send it to them yourself; it&apos;s only
+        ever shown once here.
       </p>
 
       {loading ? (
@@ -112,7 +115,8 @@ export default function AdminPasswordResetsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">{r.username}</p>
-                  <p className="text-sm text-stone-500">{r.phone || 'No phone number on file'}</p>
+                  <p className="text-sm text-stone-500">{r.email || 'No email on file'}</p>
+                  {r.phone && <p className="text-sm text-stone-500">{r.phone}</p>}
                   <p className="text-xs text-stone-400 mt-0.5">Requested {formatDate(r.created_at)}</p>
                 </div>
                 {!revealedPasswords[r.id] && (
@@ -137,13 +141,25 @@ export default function AdminPasswordResetsPage() {
 
               {revealedPasswords[r.id] && (
                 <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-2 text-sm">
-                  <p className="text-green-800">
-                    Temp password for <strong>{r.username}</strong>:{' '}
-                    <span className="font-mono font-bold">{revealedPasswords[r.id]}</span>
-                  </p>
+                  {emailedStatus[r.id] ? (
+                    <p className="text-green-800">
+                      Emailed the temp password to <strong>{r.username}</strong> automatically at{' '}
+                      {r.email}.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-green-800">
+                        Couldn&apos;t auto-email this one &mdash; temp password for{' '}
+                        <strong>{r.username}</strong>:{' '}
+                        <span className="font-mono font-bold">{revealedPasswords[r.id]}</span>
+                      </p>
+                      <p className="text-green-700 text-xs mt-1">
+                        Send this to them yourself now &mdash; it won&apos;t be shown again.
+                      </p>
+                    </>
+                  )}
                   <p className="text-green-700 text-xs mt-1">
-                    Send this to them now &mdash; it won&apos;t be shown again. Tell them to set
-                    their own password in Settings once they log in.
+                    Tell them to set their own password in Settings once they log in.
                   </p>
                 </div>
               )}

@@ -27,9 +27,9 @@ export default function ForgotPasswordPage() {
 
       {sent ? (
         <p className="text-stone-700 text-sm">
-          If that username exists, we&apos;ve received your request. An admin will reach out to
-          you directly (using the phone number on your profile, if you set one) to help you get
-          back in.
+          If that username exists, we&apos;ve received your request. Once an admin verifies it,
+          a temporary password will be emailed to the address on your account &mdash; check your
+          inbox (and spam folder) for it.
         </p>
       ) : (
         <>

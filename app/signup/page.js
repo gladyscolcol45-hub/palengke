@@ -8,7 +8,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -25,9 +25,9 @@ export default function SignupPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    const cleanPhone = phone.replace(/[\s-]/g, '');
-    if (!/^09\d{9}$/.test(cleanPhone)) {
-      setError('Enter a valid phone number, e.g. 09XX XXX XXXX. We only use this to help you back into your account if you forget your password.');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Enter a valid email address. We only use this to help you back into your account if you forget your password.');
       return;
     }
 
@@ -53,7 +53,7 @@ export default function SignupPage() {
     if (data.user) {
       await supabase
         .from('profiles')
-        .update({ username: cleanUsername, phone: cleanPhone })
+        .update({ username: cleanUsername, email: cleanEmail })
         .eq('id', data.user.id);
     }
 
@@ -66,7 +66,7 @@ export default function SignupPage() {
       <h1 className="text-2xl font-bold mb-2">Create your Palengke account</h1>
       <p className="text-stone-700 text-sm mb-1 font-medium">How to sign up?</p>
       <p className="text-stone-500 text-sm mb-6">
-        Make a username and choose your own password. No email needed.
+        Make a username and choose your own password. Log in with your username, not your email.
       </p>
       <form onSubmit={handleSignup} className="flex flex-col gap-1">
         <input
@@ -89,11 +89,11 @@ export default function SignupPage() {
         <p className="text-xs text-stone-400 mb-2">At least 6 characters.</p>
 
         <input
-          type="tel"
+          type="email"
           required
-          placeholder="Phone number (09XX XXX XXXX)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="border border-stone-300 rounded-md px-3 py-2"
         />
         <p className="text-xs text-stone-400 mb-2">

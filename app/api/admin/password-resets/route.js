@@ -4,6 +4,29 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const secretKey = process.env.SUPABASE_SECRET_KEY;
+const resendApiKey = process.env.RESEND_API_KEY;
+
+async function emailTempPasswordToUser(email, username, tempPassword) {
+  if (!resendApiKey || !email) return false;
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Palengke <onboarding@resend.dev>',
+        to: [email],
+        subject: 'Your Palengke password has been reset',
+        text: `Hi ${username},\n\nYour Palengke password was reset. Here is a temporary password:\n\n${tempPassword}\n\nLog in at https://palengke-ten.vercel.app/login with your username and this temporary password, then set your own password from Settings right away.\n\nIf you didn't request this, contact us at palengke.app23@gmail.com.`,
+      }),
+    });
+    return response.ok;
+  } catch (e) {
+    return false;
+  }
+}
 
 async function requireAdmin(request) {
   const authHeader = request.headers.get('authorization') || '';
@@ -50,7 +73,7 @@ export async function GET(request) {
 
   const { data: requests, error } = await supabaseAdmin
     .from('password_reset_requests')
-    .select('id, user_id, username, phone, created_at')
+    .select('id, user_id, username, email, phone, created_at')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
 
@@ -99,10 +122,22 @@ export async function POST(request) {
       .update({ status: 'approved', reviewed_at: new Date().toISOString() })
       .eq('id', requestId);
 
-    // The temp password is only ever returned here, once, to the admin —
-    // it's never stored anywhere. It's on the admin to relay it to the user
-    // directly (phone/Messenger, etc.) after confirming who they are.
-    return NextResponse.json({ success: true, tempPassword });
+    const profileResult = await supabaseAdmin
+      .from('profiles')
+      .select('username, email')
+      .eq('id', userId)
+      .single();
+    const profile = profileResult.data;
+
+    // Try to email the user directly. If this fails (no email on file, or
+    // Resend can't deliver to this address yet), the temp password is still
+    // returned below so the admin can relay it themselves as a fallback —
+    // it's only ever shown here once either way.
+    const emailed = profile
+      ? await emailTempPasswordToUser(profile.email, profile.username, tempPassword)
+      : false;
+
+    return NextResponse.json({ success: true, tempPassword, emailed });
   }
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
