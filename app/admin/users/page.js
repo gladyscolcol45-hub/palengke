@@ -43,6 +43,7 @@ export default function AdminUsersPage() {
   const [allUsersLoading, setAllUsersLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [banningId, setBanningId] = useState(null);
+  const [signupsQuery, setSignupsQuery] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
@@ -426,16 +427,34 @@ export default function AdminUsersPage() {
       <div>
         <h2 className="text-lg font-bold mb-1">All signups</h2>
         <p className="text-sm text-stone-500 mb-3">
-          Everyone who has created a Palengke account, most recent first.
+          Everyone who has created a Palengke account, most recent first. Search a username to ban or delete it.
         </p>
+
+        <input
+          value={signupsQuery}
+          onChange={(e) => setSignupsQuery(e.target.value)}
+          placeholder="Search by username to ban or delete..."
+          className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm mb-3"
+        />
 
         {allUsersLoading ? (
           <p className="text-stone-400 text-sm">Loading...</p>
         ) : allUsers.length === 0 ? (
           <p className="text-stone-400 text-sm">No signups yet.</p>
-        ) : (
+        ) : (() => {
+          const filteredUsers = allUsers.filter((u) =>
+            signupsQuery.trim()
+              ? (u.username || '').toLowerCase().includes(signupsQuery.trim().toLowerCase())
+              : true
+          );
+
+          if (filteredUsers.length === 0) {
+            return <p className="text-stone-400 text-sm">No accounts match that username.</p>;
+          }
+
+          return (
           <div className="flex flex-col gap-2">
-            {allUsers.map((u) => {
+            {filteredUsers.map((u) => {
               const banned = isCurrentlyBanned(u.banned_until);
               return (
                 <div
@@ -489,7 +508,8 @@ export default function AdminUsersPage() {
               );
             })}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
