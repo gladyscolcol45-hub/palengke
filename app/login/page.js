@@ -7,7 +7,7 @@ import PasswordInput from '@/components/PasswordInput';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -17,8 +17,29 @@ export default function LoginPage() {
     setError(null);
     setSaving(true);
 
-    const cleanUsername = username.trim().toLowerCase();
-    const fakeEmail = `${cleanUsername}@palengke.local`;
+    const cleanIdentifier = identifier.trim().toLowerCase();
+    let fakeEmail;
+
+    if (cleanIdentifier.includes('@')) {
+      // Logging in with an email address — look up which username it
+      // belongs to first, then log in the same way as always under the hood.
+      const lookupResponse = await fetch('/api/login-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanIdentifier }),
+      });
+      const lookupResult = await lookupResponse.json();
+      fakeEmail = lookupResult.authEmail;
+    } else {
+      fakeEmail = `${cleanIdentifier}@palengke.local`;
+    }
+
+    if (!fakeEmail) {
+      setSaving(false);
+      setError('Incorrect username/email or password.');
+      return;
+    }
+
     const supabase = createClient();
 
     const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -29,7 +50,7 @@ export default function LoginPage() {
     setSaving(false);
 
     if (loginError) {
-      setError('Incorrect username or password.');
+      setError('Incorrect username/email or password.');
       return;
     }
 
@@ -42,9 +63,9 @@ export default function LoginPage() {
       <form onSubmit={handleLogin} className="flex flex-col gap-3">
         <input
           required
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username or email"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
           className="border border-stone-300 rounded-md px-3 py-2"
         />
         <PasswordInput
