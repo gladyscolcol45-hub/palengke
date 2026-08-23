@@ -8,6 +8,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -22,6 +23,11 @@ export default function SignupPage() {
     }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
+      return;
+    }
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    if (!/^09\d{9}$/.test(cleanPhone)) {
+      setError('Enter a valid phone number, e.g. 09XX XXX XXXX. We only use this to help you back into your account if you forget your password.');
       return;
     }
 
@@ -45,7 +51,10 @@ export default function SignupPage() {
     }
 
     if (data.user) {
-      await supabase.from('profiles').update({ username: cleanUsername }).eq('id', data.user.id);
+      await supabase
+        .from('profiles')
+        .update({ username: cleanUsername, phone: cleanPhone })
+        .eq('id', data.user.id);
     }
 
     setSaving(false);
@@ -78,6 +87,19 @@ export default function SignupPage() {
           className="border border-stone-300 rounded-md px-3 py-2"
         />
         <p className="text-xs text-stone-400 mb-2">At least 6 characters.</p>
+
+        <input
+          type="tel"
+          required
+          placeholder="Phone number (09XX XXX XXXX)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          className="border border-stone-300 rounded-md px-3 py-2"
+        />
+        <p className="text-xs text-stone-400 mb-2">
+          Only used to help you get back into your account if you forget your password &mdash;
+          never shown to other users.
+        </p>
 
         <button
           type="submit"
