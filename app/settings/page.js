@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -383,26 +384,23 @@ export default function SettingsPage() {
       <div className="mt-10">
         <h2 className="text-lg font-bold mb-3">Change password</h2>
         <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-          <input
-            type="password"
+          <PasswordInput
             placeholder="Current password"
             value={currentPassword}
             onChange={function (e) { setCurrentPassword(e.target.value); }}
-            className="w-full border border-stone-300 rounded-md px-3 py-2"
+            className="border border-stone-300 rounded-md px-3 py-2"
           />
-          <input
-            type="password"
+          <PasswordInput
             placeholder="New password"
             value={newPassword}
             onChange={function (e) { setNewPassword(e.target.value); }}
-            className="w-full border border-stone-300 rounded-md px-3 py-2"
+            className="border border-stone-300 rounded-md px-3 py-2"
           />
-          <input
-            type="password"
+          <PasswordInput
             placeholder="Confirm new password"
             value={confirmPassword}
             onChange={function (e) { setConfirmPassword(e.target.value); }}
-            className="w-full border border-stone-300 rounded-md px-3 py-2"
+            className="border border-stone-300 rounded-md px-3 py-2"
           />
           {passwordError && <p className="text-red-600 text-sm">{passwordError}</p>}
           {passwordChanged && <p className="text-green-700 text-sm">Password updated!</p>}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -78,8 +79,7 @@ export default function SignupPage() {
         />
         <p className="text-xs text-stone-400 mb-2">3-20 characters: letters, numbers, and underscores only. No spaces.</p>
 
-        <input
-          type="password"
+        <PasswordInput
           required
           placeholder="Password"
           value={password}

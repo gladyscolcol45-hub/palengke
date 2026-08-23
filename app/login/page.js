@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,8 +47,7 @@ export default function LoginPage() {
           onChange={(e) => setUsername(e.target.value)}
           className="border border-stone-300 rounded-md px-3 py-2"
         />
-        <input
-          type="password"
+        <PasswordInput
           required
           placeholder="Password"
           value={password}
