@@ -7,7 +7,6 @@ import PasswordInput from '@/components/PasswordInput';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
@@ -17,48 +16,50 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
 
-    const cleanUsername = username.trim().toLowerCase();
-    if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
-      setError('Username must be 3-20 characters: letters, numbers, underscore only.');
-      return;
-    }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
     }
     const cleanEmail = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError('Enter a valid email address. We only use this to help you back into your account if you forget your password.');
+      setError('Enter a valid email address.');
       return;
     }
 
     setSaving(true);
-    const supabase = createClient();
-    const fakeEmail = `${cleanUsername}@palengke.local`;
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: fakeEmail,
-      password,
+    const response = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password }),
     });
 
-    if (signUpError) {
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (e2) {
+      result = {};
+    }
+
+    if (!response.ok) {
       setSaving(false);
-      if (signUpError.message.includes('already registered')) {
-        setError('That username is already taken.');
-      } else {
-        setError(signUpError.message);
-      }
+      setError(result.error || 'Something went wrong. Please try again.');
       return;
     }
 
-    if (data.user) {
-      await supabase
-        .from('profiles')
-        .update({ username: cleanUsername, email: cleanEmail })
-        .eq('id', data.user.id);
-    }
+    const supabase = createClient();
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email: result.authEmail,
+      password,
+    });
 
     setSaving(false);
+
+    if (loginError) {
+      setError('Account created, but something went wrong logging you in. Please log in from the login page.');
+      return;
+    }
+
     router.push('/');
   }
 
@@ -67,27 +68,9 @@ export default function SignupPage() {
       <h1 className="text-2xl font-bold mb-2">Create your Palengke account</h1>
       <p className="text-stone-700 text-sm mb-1 font-medium">How to sign up?</p>
       <p className="text-stone-500 text-sm mb-6">
-        Make a username and choose your own password. Log in with your username, not your email.
+        Enter your email and choose a password. You'll get a username automatically, and you can log in later with either your username or your email.
       </p>
       <form onSubmit={handleSignup} className="flex flex-col gap-1">
-        <input
-          required
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="border border-stone-300 rounded-md px-3 py-2"
-        />
-        <p className="text-xs text-stone-400 mb-2">3-20 characters: letters, numbers, and underscores only. No spaces.</p>
-
-        <PasswordInput
-          required
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="border border-stone-300 rounded-md px-3 py-2"
-        />
-        <p className="text-xs text-stone-400 mb-2">At least 6 characters.</p>
-
         <input
           type="email"
           required
@@ -97,9 +80,17 @@ export default function SignupPage() {
           className="border border-stone-300 rounded-md px-3 py-2"
         />
         <p className="text-xs text-stone-400 mb-2">
-          Only used to help you get back into your account if you forget your password &mdash;
-          never shown to other users.
+          Used to log in and to help you get back into your account if you forget your password.
         </p>
+
+        <PasswordInput
+          required
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="border border-stone-300 rounded-md px-3 py-2"
+        />
+        <p className="text-xs text-stone-400 mb-2">At least 6 characters.</p>
 
         <button
           type="submit"
