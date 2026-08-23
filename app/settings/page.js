@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
-import PasswordInput from '@/components/PasswordInput';
 
 export default function SettingsPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
 
@@ -29,13 +27,6 @@ export default function SettingsPage() {
   const [reportSending, setReportSending] = useState(false);
   const [reportSent, setReportSent] = useState(false);
   const [reportError, setReportError] = useState(null);
-
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState(null);
-  const [passwordChanged, setPasswordChanged] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -58,7 +49,6 @@ export default function SettingsPage() {
       const profile = profileResult.data;
       if (profile) {
         setFullName(profile.full_name || '');
-        setUsername(profile.username || '');
         setVerifiedUntil(profile.verified_until || null);
       }
 
@@ -250,54 +240,6 @@ export default function SettingsPage() {
     setReportSent(true);
   }
 
-  async function handleChangePassword(e) {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordChanged(false);
-
-    if (!currentPassword) {
-      setPasswordError('Enter your current password.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords don’t match.');
-      return;
-    }
-
-    setChangingPassword(true);
-    const supabase = createClient();
-
-    // Confirm they actually know the current password before changing it.
-    const cleanUsername = username.trim().toLowerCase();
-    const { error: reauthError } = await supabase.auth.signInWithPassword({
-      email: `${cleanUsername}@palengke.local`,
-      password: currentPassword,
-    });
-
-    if (reauthError) {
-      setChangingPassword(false);
-      setPasswordError('Current password is incorrect.');
-      return;
-    }
-
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-    setChangingPassword(false);
-
-    if (updateError) {
-      setPasswordError(updateError.message);
-      return;
-    }
-
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setPasswordChanged(true);
-  }
-
   if (loading) {
     return <p className="text-stone-400 text-sm">Loading...</p>;
   }
@@ -320,7 +262,7 @@ export default function SettingsPage() {
         <div>
           <p className="font-semibold text-stone-800">Profile</p>
           <p className="text-sm text-stone-500 mt-0.5">
-            Your name, email, phone number, and photo
+            Your name, email, phone number, photo, and password
           </p>
         </div>
         <span className="text-stone-400">&rarr;</span>
@@ -379,39 +321,6 @@ export default function SettingsPage() {
             )}
           </>
         )}
-      </div>
-
-      <div className="mt-10">
-        <h2 className="text-lg font-bold mb-3">Change password</h2>
-        <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-          <PasswordInput
-            placeholder="Current password"
-            value={currentPassword}
-            onChange={function (e) { setCurrentPassword(e.target.value); }}
-            className="border border-stone-300 rounded-md px-3 py-2"
-          />
-          <PasswordInput
-            placeholder="New password"
-            value={newPassword}
-            onChange={function (e) { setNewPassword(e.target.value); }}
-            className="border border-stone-300 rounded-md px-3 py-2"
-          />
-          <PasswordInput
-            placeholder="Confirm new password"
-            value={confirmPassword}
-            onChange={function (e) { setConfirmPassword(e.target.value); }}
-            className="border border-stone-300 rounded-md px-3 py-2"
-          />
-          {passwordError && <p className="text-red-600 text-sm">{passwordError}</p>}
-          {passwordChanged && <p className="text-green-700 text-sm">Password updated!</p>}
-          <button
-            type="submit"
-            disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-            className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50 self-start px-4"
-          >
-            {changingPassword ? 'Updating...' : 'Update password'}
-          </button>
-        </form>
       </div>
 
       <div className="mt-10">

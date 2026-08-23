@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function ProfileInfoPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function ProfileInfoPage() {
     barangay: '',
     city: '',
   });
+  const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -21,6 +23,13 @@ export default function ProfileInfoPage() {
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState(null);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -49,6 +58,7 @@ export default function ProfileInfoPage() {
           barangay: profile.barangay || '',
           city: profile.city || '',
         });
+        setUsername(profile.username || '');
         setAvatarUrl(profile.avatar_url || null);
       }
 
@@ -109,6 +119,54 @@ export default function ProfileInfoPage() {
 
     setAvatarUrl(newAvatarUrl);
     setSaved(true);
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordChanged(false);
+
+    if (!currentPassword) {
+      setPasswordError('Enter your current password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords don’t match.');
+      return;
+    }
+
+    setChangingPassword(true);
+    const supabase = createClient();
+
+    // Confirm they actually know the current password before changing it.
+    const cleanUsername = username.trim().toLowerCase();
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: `${cleanUsername}@palengke.local`,
+      password: currentPassword,
+    });
+
+    if (reauthError) {
+      setChangingPassword(false);
+      setPasswordError('Current password is incorrect.');
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+
+    if (updateError) {
+      setPasswordError(updateError.message);
+      return;
+    }
+
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordChanged(true);
   }
 
   if (loading) {
@@ -205,6 +263,39 @@ export default function ProfileInfoPage() {
           {saving ? 'Saving...' : 'Save changes'}
         </button>
       </form>
+
+      <div className="mt-10">
+        <h2 className="text-lg font-bold mb-3">Change password</h2>
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+          <PasswordInput
+            placeholder="Current password"
+            value={currentPassword}
+            onChange={function (e) { setCurrentPassword(e.target.value); }}
+            className="border border-stone-300 rounded-md px-3 py-2"
+          />
+          <PasswordInput
+            placeholder="New password"
+            value={newPassword}
+            onChange={function (e) { setNewPassword(e.target.value); }}
+            className="border border-stone-300 rounded-md px-3 py-2"
+          />
+          <PasswordInput
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChange={function (e) { setConfirmPassword(e.target.value); }}
+            className="border border-stone-300 rounded-md px-3 py-2"
+          />
+          {passwordError && <p className="text-red-600 text-sm">{passwordError}</p>}
+          {passwordChanged && <p className="text-green-700 text-sm">Password updated!</p>}
+          <button
+            type="submit"
+            disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+            className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50 self-start px-4"
+          >
+            {changingPassword ? 'Updating...' : 'Update password'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
