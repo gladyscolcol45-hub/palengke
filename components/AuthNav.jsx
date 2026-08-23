@@ -54,7 +54,7 @@ export default function AuthNav() {
               <a href="/admin/reports" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Reports (Admin)</a>
             )}
             {isAdmin && (
-              <a href="/admin/users" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Verify sellers (Admin)</a>
+              <a href="/admin/users" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Manage users (Admin)</a>
             )}
             {isAdmin && (
               <a href="/admin/password-resets" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Password resets (Admin)</a>

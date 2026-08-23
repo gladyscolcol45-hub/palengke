@@ -63,6 +63,8 @@ async function loadPendingRequests(supabaseAdmin) {
   return pendingRequests;
 }
 
+const PROFILE_COLUMNS = 'id, username, full_name, email, phone, is_admin, verified_until, created_at';
+
 export async function GET(request) {
   const auth = await requireAdmin(request);
   if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -74,12 +76,24 @@ export async function GET(request) {
   const pendingRequests = await loadPendingRequests(supabaseAdmin);
 
   if (!q) {
-    return NextResponse.json({ users: [], pendingRequests });
+    // No search yet — show every account that has signed up, most recent
+    // first. This is the admin's record of all signups.
+    const { data: users, error } = await supabaseAdmin
+      .from('profiles')
+      .select(PROFILE_COLUMNS)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ users: users || [], pendingRequests, allSignups: true });
   }
 
   const { data: users, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, username, full_name, is_admin, verified_until')
+    .select(PROFILE_COLUMNS)
     .ilike('username', `%${q}%`)
     .limit(20);
 
@@ -93,21 +107,57 @@ export async function GET(request) {
 export async function POST(request) {
   const auth = await requireAdmin(request);
   if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { supabaseAdmin } = auth;
+  const { supabaseAdmin, userId: adminUserId } = auth;
 
   const body = await request.json();
   const { userId, action, requestId } = body;
 
-  const validActions = ['verify', 'unverify', 'approve_request', 'reject_request'];
+  const validActions = ['verify', 'unverify', 'approve_request', 'reject_request', 'delete'];
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: 'Missing or invalid action' }, { status: 400 });
   }
 
-  if ((action === 'verify' || action === 'unverify') && !userId) {
+  if ((action === 'verify' || action === 'unverify' || action === 'delete') && !userId) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
   if ((action === 'approve_request' || action === 'reject_request') && (!requestId || !userId)) {
     return NextResponse.json({ error: 'Missing requestId or userId' }, { status: 400 });
+  }
+
+  if (action === 'delete') {
+    if (userId === adminUserId) {
+      return NextResponse.json(
+        { error: "You can't delete your own account from here." },
+        { status: 400 }
+      );
+    }
+
+    // Same full cleanup as the self-service "Delete account" in Settings,
+    // just triggered by an admin instead of the user themselves.
+    await supabaseAdmin.from('messages').delete().eq('sender_id', userId);
+    await supabaseAdmin.from('reviews').delete().eq('reviewer_id', userId);
+    await supabaseAdmin.from('reviews').delete().eq('reviewed_user_id', userId);
+    await supabaseAdmin.from('reports').delete().eq('reporter_id', userId);
+    await supabaseAdmin.from('reports').delete().eq('reported_user_id', userId);
+    await supabaseAdmin.from('blocks').delete().eq('blocker_id', userId);
+    await supabaseAdmin.from('blocks').delete().eq('blocked_id', userId);
+    await supabaseAdmin.from('chats').delete().or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    await supabaseAdmin.from('listings').delete().eq('seller_id', userId);
+
+    const filesResult = await supabaseAdmin.storage.from('listing-photos').list(userId);
+    if (filesResult.data && filesResult.data.length > 0) {
+      const paths = filesResult.data.map((f) => `${userId}/${f.name}`);
+      await supabaseAdmin.storage.from('listing-photos').remove(paths);
+    }
+
+    await supabaseAdmin.from('profiles').delete().eq('id', userId);
+
+    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (deleteUserError) {
+      return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
   }
 
   if (action === 'verify') {

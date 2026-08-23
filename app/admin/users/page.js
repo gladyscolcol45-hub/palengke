@@ -26,6 +26,10 @@ export default function AdminUsersPage() {
   const [pendingLoading, setPendingLoading] = useState(true);
   const [actioningRequestId, setActioningRequestId] = useState(null);
 
+  const [allUsers, setAllUsers] = useState([]);
+  const [allUsersLoading, setAllUsersLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -49,6 +53,7 @@ export default function AdminUsersPage() {
 
       if (admin) {
         loadPending();
+        loadAllUsers();
       }
     }
 
@@ -66,6 +71,23 @@ export default function AdminUsersPage() {
 
       if (response.ok) {
         setPendingRequests(result.pendingRequests || []);
+      }
+    }
+
+    async function loadAllUsers() {
+      setAllUsersLoading(true);
+      const supabase3 = createClient();
+      const sessionResult = await supabase3.auth.getSession();
+      const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+      const response = await fetch('/api/admin/users', {
+        headers: { Authorization: 'Bearer ' + accessToken },
+      });
+      const result = await response.json();
+      setAllUsersLoading(false);
+
+      if (response.ok) {
+        setAllUsers(result.users || []);
       }
     }
 
@@ -159,6 +181,40 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function handleDeleteUser(userId, username) {
+    const confirmed = window.confirm(
+      'Permanently delete ' +
+        (username || 'this user') +
+        "'s account? This deletes their profile, listings, chats, messages, reviews, and photos. This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setDeletingId(userId);
+    const supabase = createClient();
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+    const response = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: JSON.stringify({ userId, action: 'delete' }),
+    });
+
+    const result = await response.json();
+    setDeletingId(null);
+
+    if (!response.ok) {
+      alert(result.error || 'Something went wrong.');
+      return;
+    }
+
+    setAllUsers((prev) => prev.filter((u) => u.id !== userId));
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+  }
+
   if (checking) {
     return <p className="text-stone-400 text-sm">Loading...</p>;
   }
@@ -169,9 +225,9 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-1">Verify sellers</h1>
+      <h1 className="text-2xl font-bold mb-1">Manage users</h1>
       <p className="text-sm text-stone-500 mb-6">
-        Verifying a seller lasts 30 days. Renew it any time by tapping &quot;Extend 30 days&quot; once they&apos;ve paid again.
+        See everyone who has signed up, verify sellers, and delete an account directly if you need to &mdash; you don&apos;t need a report first.
       </p>
 
       <div className="mb-8">
@@ -239,9 +295,9 @@ export default function AdminUsersPage() {
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
       {users.length === 0 ? (
-        <p className="text-stone-400 text-sm">No users found. Try searching a username above.</p>
+        <p className="text-stone-400 text-sm mb-8">No users found. Try searching a username above.</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mb-8">
           {users.map((u) => {
             const verified = isCurrentlyVerified(u.verified_until);
             const expired = !!u.verified_until && !verified;
@@ -291,6 +347,48 @@ export default function AdminUsersPage() {
           })}
         </div>
       )}
+
+      <div>
+        <h2 className="text-lg font-bold mb-1">All signups</h2>
+        <p className="text-sm text-stone-500 mb-3">
+          Everyone who has created a Palengke account, most recent first.
+        </p>
+
+        {allUsersLoading ? (
+          <p className="text-stone-400 text-sm">Loading...</p>
+        ) : allUsers.length === 0 ? (
+          <p className="text-stone-400 text-sm">No signups yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {allUsers.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center justify-between border border-stone-200 rounded-lg p-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium flex items-center gap-1">
+                    {u.username || 'Unnamed user'}
+                    {u.is_admin && <span className="text-xs text-stone-400 ml-1">(admin)</span>}
+                  </p>
+                  {u.full_name && <p className="text-sm text-stone-500">{u.full_name}</p>}
+                  {u.email && <p className="text-xs text-stone-400">{u.email}</p>}
+                  {u.phone && <p className="text-xs text-stone-400">{u.phone}</p>}
+                  <p className="text-xs text-stone-400 mt-0.5">Signed up {formatDate(u.created_at)}</p>
+                </div>
+                {!u.is_admin && (
+                  <button
+                    onClick={() => handleDeleteUser(u.id, u.username)}
+                    disabled={deletingId === u.id}
+                    className="text-sm bg-red-600 text-white rounded-md px-3 py-1.5 hover:bg-red-700 disabled:opacity-50 flex-shrink-0"
+                  >
+                    {deletingId === u.id ? 'Deleting...' : 'Delete account'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
