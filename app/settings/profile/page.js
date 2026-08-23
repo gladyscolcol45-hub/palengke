@@ -176,7 +176,7 @@ export default function ProfileInfoPage() {
   return (
     <div className="max-w-lg mx-auto py-8">
       <a href="/settings" className="text-sm text-green-700 hover:underline">&larr; Back to Settings</a>
-      <h1 className="text-2xl font-bold mb-6 mt-2">Profile</h1>
+      <h1 className="text-2xl font-bold mb-6 mt-2">Profile Details</h1>
 
       <form onSubmit={handleSave} className="flex flex-col gap-4">
         <div>

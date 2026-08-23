@@ -260,7 +260,7 @@ export default function SettingsPage() {
         className="flex items-center justify-between border border-stone-200 rounded-lg p-4 mb-6 hover:bg-stone-50"
       >
         <div>
-          <p className="font-semibold text-stone-800">Profile</p>
+          <p className="font-semibold text-stone-800">Profile Details</p>
           <p className="text-sm text-stone-500 mt-0.5">
             Your name, email, phone number, photo, and password
           </p>
