@@ -1,17 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import PasswordInput from '@/components/PasswordInput';
 
 export default function ManageAccountPage() {
   const router = useRouter();
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function load() {
+      const userResult = await supabase.auth.getUser();
+      const user = userResult.data.user;
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      const profileResult = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      setUsername(profileResult.data ? profileResult.data.username || '' : '');
+      setLoading(false);
+    }
+
+    load();
+  }, [router]);
+
   async function handleDeleteAccount() {
-    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return;
+    if (!deletePassword) return;
 
     const confirmed = window.confirm(
       'This will permanently delete your account: your login, profile, listings, chats, and reviews. This cannot be undone. Continue?'
@@ -21,6 +48,19 @@ export default function ManageAccountPage() {
     setDeleting(true);
     setDeleteError(null);
     const supabase = createClient();
+
+    // Confirm they actually know their password before deleting anything.
+    const cleanUsername = username.trim().toLowerCase();
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: `${cleanUsername}@palengke.local`,
+      password: deletePassword,
+    });
+
+    if (reauthError) {
+      setDeleting(false);
+      setDeleteError('Incorrect password.');
+      return;
+    }
 
     const sessionResult = await supabase.auth.getSession();
     const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
@@ -53,6 +93,10 @@ export default function ManageAccountPage() {
     router.push('/login');
   }
 
+  if (loading) {
+    return <p className="text-stone-400 text-sm">Loading...</p>;
+  }
+
   return (
     <div className="max-w-lg mx-auto py-8">
       <a href="/settings/profile" className="text-sm text-green-700 hover:underline">&larr; Back to Profile Details</a>
@@ -64,18 +108,18 @@ export default function ManageAccountPage() {
           This will permanently delete your account: your login, profile, listings, chats, messages, reviews, reports, and photos. This cannot be undone.
         </p>
         <label className="block text-sm font-medium text-stone-700 mb-1">
-          Type DELETE to confirm
+          Type your password to confirm
         </label>
-        <input
-          value={deleteConfirmText}
-          onChange={function (e) { setDeleteConfirmText(e.target.value); }}
-          className="w-full border border-stone-300 rounded-md px-3 py-2 mb-3"
-          placeholder="DELETE"
+        <PasswordInput
+          value={deletePassword}
+          onChange={function (e) { setDeletePassword(e.target.value); }}
+          className="border border-stone-300 rounded-md px-3 py-2 mb-3"
+          placeholder="Your password"
         />
         {deleteError && <p className="text-red-600 text-sm mb-2">{deleteError}</p>}
         <button
           onClick={handleDeleteAccount}
-          disabled={deleting || deleteConfirmText.trim().toUpperCase() !== 'DELETE'}
+          disabled={deleting || !deletePassword}
           className="bg-red-600 text-white rounded-md px-4 py-2 font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {deleting ? 'Deleting...' : 'Delete my account'}
