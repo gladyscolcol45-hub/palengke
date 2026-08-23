@@ -3,19 +3,19 @@
 import { useState } from 'react';
 
 export default function ForgotPasswordPage() {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!username.trim()) return;
+    if (!identifier.trim()) return;
 
     setSending(true);
     await fetch('/api/forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.trim() }),
+      body: JSON.stringify({ identifier: identifier.trim() }),
     });
     setSending(false);
     setSent(true);
@@ -27,21 +27,21 @@ export default function ForgotPasswordPage() {
 
       {sent ? (
         <p className="text-stone-700 text-sm">
-          If that username exists, we&apos;ve received your request. Once an admin verifies it,
+          If that account exists, we&apos;ve received your request. Once an admin verifies it,
           a temporary password will be emailed to the address on your account &mdash; check your
           inbox (and spam folder) for it.
         </p>
       ) : (
         <>
           <p className="text-stone-500 text-sm mb-6">
-            Enter your username and an admin will help you reset your password.
+            Enter your username or email and an admin will help you reset your password.
           </p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <input
               required
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username or email"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="border border-stone-300 rounded-md px-3 py-2"
             />
             <button

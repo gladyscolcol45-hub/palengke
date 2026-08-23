@@ -32,26 +32,38 @@ async function sendAdminEmail(username, email) {
 
 export async function POST(request) {
   const body = await request.json();
-  const username = (body.username || '').trim().toLowerCase();
+  // Accept either a username or an email address here (older clients may
+  // still send "username" — keep honoring that field name too).
+  const identifier = (body.identifier || body.username || '').trim().toLowerCase();
 
-  // Always return the same generic message whether or not the username
-  // exists, so this can't be used to check which usernames are registered.
+  // Always return the same generic message whether or not the account
+  // exists, so this can't be used to check which accounts are registered.
   const genericResponse = NextResponse.json({
     success: true,
-    message: "If that username exists, we've received your request. An admin will reach out to help you reset your password.",
+    message: "If that account exists, we've received your request. An admin will reach out to help you reset your password.",
   });
 
-  if (!username) return genericResponse;
+  if (!identifier) return genericResponse;
 
   const supabaseAdmin = createClient(supabaseUrl, secretKey);
 
-  const profileResult = await supabaseAdmin
+  const byUsernameResult = await supabaseAdmin
     .from('profiles')
     .select('id, username, email, phone')
-    .ilike('username', username)
+    .ilike('username', identifier)
     .maybeSingle();
 
-  const profile = profileResult.data;
+  let profile = byUsernameResult.data;
+
+  if (!profile && identifier.includes('@')) {
+    const byEmailResult = await supabaseAdmin
+      .from('profiles')
+      .select('id, username, email, phone')
+      .eq('email', identifier)
+      .maybeSingle();
+    profile = byEmailResult.data;
+  }
+
   if (!profile) return genericResponse;
 
   // Don't pile up duplicate pending requests if someone taps submit twice.
