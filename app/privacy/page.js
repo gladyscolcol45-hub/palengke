@@ -44,8 +44,8 @@ export default function PrivacyPage() {
           <h2 className="font-semibold text-stone-900 mb-1">Contact</h2>
           <p>
             Questions about your data? Email{' '}
-            <a href="mailto:gladyscolcol45@gmail.com" className="text-green-700 underline">
-              gladyscolcol45@gmail.com
+            <a href="mailto:palengke.app23@gmail.com" className="text-green-700 underline">
+              palengke.app23@gmail.com
             </a>
             .
           </p>

@@ -27,8 +27,8 @@ export default function AboutPage() {
       </p>
       <p className="text-stone-700">
         Questions or feedback? Reach out at{' '}
-        <a href="mailto:gladyscolcol45@gmail.com" className="text-green-700 underline">
-          gladyscolcol45@gmail.com
+        <a href="mailto:palengke.app23@gmail.com" className="text-green-700 underline">
+          palengke.app23@gmail.com
         </a>
         .
       </p>

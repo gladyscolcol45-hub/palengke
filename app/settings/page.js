@@ -436,7 +436,7 @@ export default function SettingsPage() {
           <a href="/terms" className="text-green-700 hover:underline">Terms of Service</a>
           <a href="/privacy" className="text-green-700 hover:underline">Privacy Policy</a>
           <a
-            href="mailto:gladyscolcol45@gmail.com?subject=Palengke%20app%20problem"
+            href="mailto:palengke.app23@gmail.com?subject=Palengke%20app%20problem"
             className="text-green-700 hover:underline"
           >
             Report a problem
