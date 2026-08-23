@@ -63,7 +63,8 @@ async function loadPendingRequests(supabaseAdmin) {
   return pendingRequests;
 }
 
-const PROFILE_COLUMNS = 'id, username, full_name, email, phone, is_admin, verified_until, created_at';
+const PROFILE_COLUMNS =
+  'id, username, full_name, email, phone, is_admin, verified_until, created_at, banned_until';
 
 export async function GET(request) {
   const auth = await requireAdmin(request);
@@ -112,12 +113,15 @@ export async function POST(request) {
   const body = await request.json();
   const { userId, action, requestId } = body;
 
-  const validActions = ['verify', 'unverify', 'approve_request', 'reject_request', 'delete'];
+  const validActions = ['verify', 'unverify', 'approve_request', 'reject_request', 'delete', 'ban', 'unban'];
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: 'Missing or invalid action' }, { status: 400 });
   }
 
-  if ((action === 'verify' || action === 'unverify' || action === 'delete') && !userId) {
+  if (
+    (action === 'verify' || action === 'unverify' || action === 'delete' || action === 'ban' || action === 'unban') &&
+    !userId
+  ) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
   if ((action === 'approve_request' || action === 'reject_request') && (!requestId || !userId)) {
@@ -155,6 +159,54 @@ export async function POST(request) {
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteUserError) {
       return NextResponse.json({ error: deleteUserError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === 'ban') {
+    if (userId === adminUserId) {
+      return NextResponse.json({ error: "You can't ban your own account." }, { status: 400 });
+    }
+
+    const bannedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    // Ban at the Supabase Auth level so they're actually blocked from
+    // logging in / staying logged in, not just hidden in the UI.
+    const banResult = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      ban_duration: '24h',
+    });
+    if (banResult.error) {
+      return NextResponse.json({ error: banResult.error.message }, { status: 500 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ banned_until: bannedUntil })
+      .eq('id', userId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, bannedUntil });
+  }
+
+  if (action === 'unban') {
+    const banResult = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      ban_duration: 'none',
+    });
+    if (banResult.error) {
+      return NextResponse.json({ error: banResult.error.message }, { status: 500 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ banned_until: null })
+      .eq('id', userId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

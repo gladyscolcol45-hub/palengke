@@ -12,6 +12,19 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatDateTime(dateString) {
+  return new Date(dateString).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function isCurrentlyBanned(bannedUntil) {
+  return !!bannedUntil && new Date(bannedUntil) > new Date();
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -29,6 +42,7 @@ export default function AdminUsersPage() {
   const [allUsers, setAllUsers] = useState([]);
   const [allUsersLoading, setAllUsersLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [banningId, setBanningId] = useState(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -215,6 +229,67 @@ export default function AdminUsersPage() {
     setUsers((prev) => prev.filter((u) => u.id !== userId));
   }
 
+  async function handleBanUser(userId, username) {
+    const confirmed = window.confirm(
+      'Ban ' + (username || 'this user') + " for 1 day? They won't be able to log in until then."
+    );
+    if (!confirmed) return;
+
+    setBanningId(userId);
+    const supabase = createClient();
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+    const response = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: JSON.stringify({ userId, action: 'ban' }),
+    });
+
+    const result = await response.json();
+    setBanningId(null);
+
+    if (!response.ok) {
+      alert(result.error || 'Something went wrong.');
+      return;
+    }
+
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, banned_until: result.bannedUntil } : u))
+    );
+  }
+
+  async function handleUnbanUser(userId) {
+    setBanningId(userId);
+    const supabase = createClient();
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+
+    const response = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: JSON.stringify({ userId, action: 'unban' }),
+    });
+
+    const result = await response.json();
+    setBanningId(null);
+
+    if (!response.ok) {
+      alert(result.error || 'Something went wrong.');
+      return;
+    }
+
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, banned_until: null } : u))
+    );
+  }
+
   if (checking) {
     return <p className="text-stone-400 text-sm">Loading...</p>;
   }
@@ -227,7 +302,7 @@ export default function AdminUsersPage() {
     <div className="max-w-2xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-1">Manage users</h1>
       <p className="text-sm text-stone-500 mb-6">
-        See everyone who has signed up, verify sellers, and delete an account directly if you need to &mdash; you don&apos;t need a report first.
+        See everyone who has signed up, verify sellers, and ban or delete an account directly if you need to &mdash; you don&apos;t need a report first.
       </p>
 
       <div className="mb-8">
@@ -360,32 +435,59 @@ export default function AdminUsersPage() {
           <p className="text-stone-400 text-sm">No signups yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {allUsers.map((u) => (
-              <div
-                key={u.id}
-                className="flex items-center justify-between border border-stone-200 rounded-lg p-3"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium flex items-center gap-1">
-                    {u.username || 'Unnamed user'}
-                    {u.is_admin && <span className="text-xs text-stone-400 ml-1">(admin)</span>}
-                  </p>
-                  {u.full_name && <p className="text-sm text-stone-500">{u.full_name}</p>}
-                  {u.email && <p className="text-xs text-stone-400">{u.email}</p>}
-                  {u.phone && <p className="text-xs text-stone-400">{u.phone}</p>}
-                  <p className="text-xs text-stone-400 mt-0.5">Signed up {formatDate(u.created_at)}</p>
+            {allUsers.map((u) => {
+              const banned = isCurrentlyBanned(u.banned_until);
+              return (
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between border border-stone-200 rounded-lg p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium flex items-center gap-1">
+                      {u.username || 'Unnamed user'}
+                      {u.is_admin && <span className="text-xs text-stone-400 ml-1">(admin)</span>}
+                    </p>
+                    {u.full_name && <p className="text-sm text-stone-500">{u.full_name}</p>}
+                    {u.email && <p className="text-xs text-stone-400">{u.email}</p>}
+                    {u.phone && <p className="text-xs text-stone-400">{u.phone}</p>}
+                    <p className="text-xs text-stone-400 mt-0.5">Signed up {formatDate(u.created_at)}</p>
+                    {banned && (
+                      <p className="text-xs text-red-600 font-medium mt-0.5">
+                        Banned until {formatDateTime(u.banned_until)}
+                      </p>
+                    )}
+                  </div>
+                  {!u.is_admin && (
+                    <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
+                      {banned ? (
+                        <button
+                          onClick={() => handleUnbanUser(u.id)}
+                          disabled={banningId === u.id}
+                          className="text-sm bg-stone-100 text-stone-600 rounded-md px-3 py-1.5 hover:bg-stone-200 disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {banningId === u.id ? 'Working...' : 'Unban'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleBanUser(u.id, u.username)}
+                          disabled={banningId === u.id}
+                          className="text-sm bg-amber-500 text-white rounded-md px-3 py-1.5 hover:bg-amber-600 disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {banningId === u.id ? 'Working...' : 'Ban 1 day'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteUser(u.id, u.username)}
+                        disabled={deletingId === u.id}
+                        className="text-sm bg-red-600 text-white rounded-md px-3 py-1.5 hover:bg-red-700 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {deletingId === u.id ? 'Deleting...' : 'Delete account'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {!u.is_admin && (
-                  <button
-                    onClick={() => handleDeleteUser(u.id, u.username)}
-                    disabled={deletingId === u.id}
-                    className="text-sm bg-red-600 text-white rounded-md px-3 py-1.5 hover:bg-red-700 disabled:opacity-50 flex-shrink-0"
-                  >
-                    {deletingId === u.id ? 'Deleting...' : 'Delete account'}
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
