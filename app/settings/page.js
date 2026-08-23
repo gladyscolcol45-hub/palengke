@@ -39,6 +39,12 @@ export default function SettingsPage() {
   const [reportSent, setReportSent] = useState(false);
   const [reportError, setReportError] = useState(null);
 
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordChanged, setPasswordChanged] = useState(false);
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -257,6 +263,35 @@ export default function SettingsPage() {
     setReportSent(true);
   }
 
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordChanged(false);
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords don’t match.');
+      return;
+    }
+
+    setChangingPassword(true);
+    const supabase = createClient();
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+
+    if (updateError) {
+      setPasswordError(updateError.message);
+      return;
+    }
+
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordChanged(true);
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
@@ -442,6 +477,35 @@ export default function SettingsPage() {
           {saving ? 'Saving...' : 'Save changes'}
         </button>
       </form>
+
+      <div className="mt-10">
+        <h2 className="text-lg font-bold mb-3">Change password</h2>
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
+          <input
+            type="password"
+            placeholder="New password"
+            value={newPassword}
+            onChange={function (e) { setNewPassword(e.target.value); }}
+            className="w-full border border-stone-300 rounded-md px-3 py-2"
+          />
+          <input
+            type="password"
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChange={function (e) { setConfirmPassword(e.target.value); }}
+            className="w-full border border-stone-300 rounded-md px-3 py-2"
+          />
+          {passwordError && <p className="text-red-600 text-sm">{passwordError}</p>}
+          {passwordChanged && <p className="text-green-700 text-sm">Password updated!</p>}
+          <button
+            type="submit"
+            disabled={changingPassword || !newPassword || !confirmPassword}
+            className="bg-green-700 text-white rounded-md py-2 font-semibold hover:bg-green-800 disabled:opacity-50 self-start px-4"
+          >
+            {changingPassword ? 'Updating...' : 'Update password'}
+          </button>
+        </form>
+      </div>
 
       <div className="mt-10">
         <h2 className="text-lg font-bold mb-3">Blocked users</h2>

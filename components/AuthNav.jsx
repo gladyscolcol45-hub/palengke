@@ -56,6 +56,9 @@ export default function AuthNav() {
             {isAdmin && (
               <a href="/admin/users" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Verify sellers (Admin)</a>
             )}
+            {isAdmin && (
+              <a href="/admin/password-resets" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Password resets (Admin)</a>
+            )}
             <a href="/favorites" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Saved</a>
             <a href="/settings" className="block px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700" onClick={() => setMenuOpen(false)}>Settings</a>
             <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 hover:text-green-700">Log out</button>

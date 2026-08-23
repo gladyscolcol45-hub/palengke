@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import InstallPrompt from './InstallPrompt';
 
-const PUBLIC_PATHS = ['/login', '/signup', '/about', '/terms', '/privacy'];
+const PUBLIC_PATHS = ['/login', '/signup', '/about', '/terms', '/privacy', '/forgot-password'];
 const INSTALL_DISMISSED_KEY = 'palengke_install_dismissed';
 
 // Shown once to first-time visitors, right when they open the app link and
