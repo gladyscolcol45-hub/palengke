@@ -296,6 +296,19 @@ export default function ProfileInfoPage() {
           </button>
         </form>
       </div>
+
+      <a
+        href="/settings/profile/manage"
+        className="flex items-center justify-between border border-stone-200 rounded-lg p-4 mt-10 hover:bg-stone-50"
+      >
+        <div>
+          <p className="font-semibold text-stone-800">Manage account</p>
+          <p className="text-sm text-stone-500 mt-0.5">
+            Delete your account
+          </p>
+        </div>
+        <span className="text-stone-400">&rarr;</span>
+      </a>
     </div>
   );
 }
