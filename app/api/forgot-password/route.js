@@ -42,6 +42,21 @@ export async function POST(request) {
       username: profile.username,
       phone: profile.phone,
     });
+
+    // Best-effort: let admins know a request is waiting, same as the
+    // Verified Seller request flow. If this fails the request itself was
+    // still saved, so an admin will still see it next time they check
+    // Password resets.
+    const adminsResult = await supabaseAdmin.from('profiles').select('id').eq('is_admin', true);
+    const admins = adminsResult.data || [];
+    for (let i = 0; i < admins.length; i++) {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: admins[i].id,
+        type: 'password_reset_requested',
+        message: profile.username + ' requested a password reset — review it in Password resets.',
+        link: '/admin/password-resets',
+      });
+    }
   }
 
   return genericResponse;
