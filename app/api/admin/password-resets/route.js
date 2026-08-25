@@ -6,6 +6,10 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const secretKey = process.env.SUPABASE_SECRET_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
 
+// Same admin inbox used for the "new request" alert — every temp password
+// also gets copied here as a backup record / manual-relay fallback.
+const ADMIN_EMAIL = 'palengke.app23@gmail.com';
+
 async function emailTempPasswordToUser(email, username, tempPassword) {
   if (!resendApiKey || !email) return false;
   try {
@@ -25,6 +29,32 @@ async function emailTempPasswordToUser(email, username, tempPassword) {
     return response.ok;
   } catch (e) {
     return false;
+  }
+}
+
+async function emailTempPasswordCopyToAdmin(username, tempPassword, userEmail, emailedUser) {
+  if (!resendApiKey) return;
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Palengke <noreply@palengkeapp.com>',
+        to: [ADMIN_EMAIL],
+        subject: `Temp password issued for ${username || 'unknown user'}`,
+        text: `You approved a password reset for ${username || 'unknown user'}.\n\nTemporary password: ${tempPassword}\n\n${
+          emailedUser
+            ? `This was also emailed directly to them at ${userEmail}.`
+            : `It could NOT be auto-emailed to them (${userEmail || 'no email on file'}) — you'll need to relay this password to them yourself.`
+        }\n\nThis is only sent here as a backup copy; it's not shown anywhere else after this.`,
+      }),
+    });
+  } catch (e) {
+    // Best-effort — the admin still saw the temp password on the
+    // password-resets page right after approving, as a fallback.
   }
 }
 
@@ -149,6 +179,15 @@ export async function POST(request) {
     const emailed = profile
       ? await emailTempPasswordToUser(profile.email, profile.username, tempPassword)
       : false;
+
+    // Always send a backup copy to the admin inbox too, so it's on record
+    // there even when the direct email to the user succeeds.
+    await emailTempPasswordCopyToAdmin(
+      profile ? profile.username : null,
+      tempPassword,
+      profile ? profile.email : null,
+      emailed
+    );
 
     return NextResponse.json({ success: true, tempPassword, emailed });
   }
