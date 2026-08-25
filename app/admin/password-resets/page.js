@@ -13,6 +13,7 @@ export default function AdminPasswordResetsPage() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [requests, setRequests] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [revealedPasswords, setRevealedPasswords] = useState({});
@@ -53,7 +54,10 @@ export default function AdminPasswordResetsPage() {
       });
       const result = await response.json();
       setLoading(false);
-      if (response.ok) setRequests(result.requests || []);
+      if (response.ok) {
+        setRequests(result.requests || []);
+        setHistory(result.history || []);
+      }
     }
 
     init();
@@ -82,11 +86,27 @@ export default function AdminPasswordResetsPage() {
       return;
     }
 
+    const decidedRequest = requests.find((r) => r.id === requestId);
+
     if (action === 'approve') {
       setRevealedPasswords((prev) => ({ ...prev, [requestId]: result.tempPassword }));
       setEmailedStatus((prev) => ({ ...prev, [requestId]: !!result.emailed }));
     } else {
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    }
+
+    if (decidedRequest) {
+      setHistory((prev) => [
+        {
+          id: decidedRequest.id,
+          username: decidedRequest.username,
+          email: decidedRequest.email,
+          status: action === 'approve' ? 'approved' : 'rejected',
+          created_at: decidedRequest.created_at,
+          reviewed_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     }
   }
 
@@ -167,6 +187,42 @@ export default function AdminPasswordResetsPage() {
           ))}
         </div>
       )}
+
+      <div className="mt-10">
+        <h2 className="text-lg font-bold mb-1">History</h2>
+        <p className="text-sm text-stone-500 mb-3">Recently approved or rejected requests.</p>
+
+        {history.length === 0 ? (
+          <p className="text-stone-400 text-sm">No decisions yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {history.map((h) => (
+              <div
+                key={h.id}
+                className="flex items-center justify-between border border-stone-200 rounded-lg p-3"
+              >
+                <div>
+                  <p className="font-medium">{h.username}</p>
+                  <p className="text-sm text-stone-500">{h.email || 'No email on file'}</p>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    {h.reviewed_at ? formatDate(h.reviewed_at) : ''}
+                  </p>
+                </div>
+                <span
+                  className={
+                    'text-xs font-semibold px-2 py-1 rounded-full ' +
+                    (h.status === 'approved'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-stone-100 text-stone-600')
+                  }
+                >
+                  {h.status === 'approved' ? 'Approved' : 'Rejected'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

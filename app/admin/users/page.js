@@ -36,6 +36,7 @@ export default function AdminUsersPage() {
   const [actioningId, setActioningId] = useState(null);
 
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [requestHistory, setRequestHistory] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(true);
   const [actioningRequestId, setActioningRequestId] = useState(null);
 
@@ -86,6 +87,7 @@ export default function AdminUsersPage() {
 
       if (response.ok) {
         setPendingRequests(result.pendingRequests || []);
+        setRequestHistory(result.requestHistory || []);
       }
     }
 
@@ -131,6 +133,9 @@ export default function AdminUsersPage() {
     setUsers(result.users || []);
     if (result.pendingRequests) {
       setPendingRequests(result.pendingRequests);
+    }
+    if (result.requestHistory) {
+      setRequestHistory(result.requestHistory);
     }
   }
 
@@ -188,6 +193,9 @@ export default function AdminUsersPage() {
     }
 
     setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId));
+    if (result.requestHistory) {
+      setRequestHistory(result.requestHistory);
+    }
 
     if (action === 'approve_request') {
       setUsers((prev) =>
@@ -344,6 +352,42 @@ export default function AdminUsersPage() {
                     Reject
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-lg font-bold mb-1">Verification request history</h2>
+        <p className="text-sm text-stone-500 mb-3">Recently approved or rejected Verified Seller requests.</p>
+
+        {requestHistory.length === 0 ? (
+          <p className="text-stone-400 text-sm">No decisions yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {requestHistory.map((h) => (
+              <div
+                key={h.requestId}
+                className="flex items-center justify-between border border-stone-200 rounded-lg p-3"
+              >
+                <div>
+                  <p className="font-medium">{h.username || 'Unnamed user'}</p>
+                  {h.fullName && <p className="text-sm text-stone-500">{h.fullName}</p>}
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    {h.reviewedAt ? formatDate(h.reviewedAt) : ''}
+                  </p>
+                </div>
+                <span
+                  className={
+                    'text-xs font-semibold px-2 py-1 rounded-full ' +
+                    (h.status === 'approved'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-stone-100 text-stone-600')
+                  }
+                >
+                  {h.status === 'approved' ? 'Approved' : 'Rejected'}
+                </span>
               </div>
             ))}
           </div>

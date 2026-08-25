@@ -63,6 +63,39 @@ async function loadPendingRequests(supabaseAdmin) {
   return pendingRequests;
 }
 
+async function loadRequestHistory(supabaseAdmin) {
+  const historyResult = await supabaseAdmin
+    .from('verification_requests')
+    .select('id, user_id, status, created_at, reviewed_at')
+    .in('status', ['approved', 'rejected'])
+    .order('reviewed_at', { ascending: false })
+    .limit(30);
+
+  const historyRows = historyResult.data || [];
+  const history = [];
+
+  for (let i = 0; i < historyRows.length; i++) {
+    const row = historyRows[i];
+    const profileResult = await supabaseAdmin
+      .from('profiles')
+      .select('username, full_name')
+      .eq('id', row.user_id)
+      .single();
+
+    const p = profileResult.data;
+    history.push({
+      requestId: row.id,
+      status: row.status,
+      createdAt: row.created_at,
+      reviewedAt: row.reviewed_at,
+      username: p ? p.username : null,
+      fullName: p ? p.full_name : null,
+    });
+  }
+
+  return history;
+}
+
 const PROFILE_COLUMNS =
   'id, username, full_name, email, phone, is_admin, verified_until, created_at, banned_until';
 
@@ -75,6 +108,7 @@ export async function GET(request) {
   const q = (searchParams.get('q') || '').trim();
 
   const pendingRequests = await loadPendingRequests(supabaseAdmin);
+  const requestHistory = await loadRequestHistory(supabaseAdmin);
 
   if (!q) {
     // No search yet — show every account that has signed up, most recent
@@ -89,7 +123,7 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ users: users || [], pendingRequests, allSignups: true });
+    return NextResponse.json({ users: users || [], pendingRequests, requestHistory, allSignups: true });
   }
 
   const { data: users, error } = await supabaseAdmin
@@ -102,7 +136,7 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ users: users || [], pendingRequests });
+  return NextResponse.json({ users: users || [], pendingRequests, requestHistory });
 }
 
 export async function POST(request) {
@@ -276,7 +310,8 @@ export async function POST(request) {
     });
 
     const pendingRequests = await loadPendingRequests(supabaseAdmin);
-    return NextResponse.json({ success: true, verifiedUntil, pendingRequests });
+    const requestHistory = await loadRequestHistory(supabaseAdmin);
+    return NextResponse.json({ success: true, verifiedUntil, pendingRequests, requestHistory });
   }
 
   // action === 'reject_request'
@@ -297,5 +332,6 @@ export async function POST(request) {
   });
 
   const pendingRequests = await loadPendingRequests(supabaseAdmin);
-  return NextResponse.json({ success: true, pendingRequests });
+  const requestHistory = await loadRequestHistory(supabaseAdmin);
+  return NextResponse.json({ success: true, pendingRequests, requestHistory });
 }

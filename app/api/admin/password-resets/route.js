@@ -81,7 +81,20 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ requests: requests || [] });
+  // Recently decided ones (approved or rejected), most recent first, so the
+  // page isn't only ever showing what's still pending.
+  const { data: history, error: historyError } = await supabaseAdmin
+    .from('password_reset_requests')
+    .select('id, username, email, status, created_at, reviewed_at')
+    .in('status', ['approved', 'rejected'])
+    .order('reviewed_at', { ascending: false })
+    .limit(30);
+
+  if (historyError) {
+    return NextResponse.json({ error: historyError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ requests: requests || [], history: history || [] });
 }
 
 export async function POST(request) {
