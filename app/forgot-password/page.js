@@ -6,17 +6,39 @@ export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!identifier.trim()) return;
+    setError(null);
+    if (!identifier.trim()) {
+      setError('Please enter a username or email.');
+      return;
+    }
 
     setSending(true);
-    await fetch('/api/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: identifier.trim() }),
-    });
+    try {
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: identifier.trim() }),
+      });
+      if (!response.ok) {
+        let result = {};
+        try {
+          result = await response.json();
+        } catch (e2) {
+          result = {};
+        }
+        setSending(false);
+        setError(result.error || 'Something went wrong (server error). Please try again.');
+        return;
+      }
+    } catch (err) {
+      setSending(false);
+      setError('Could not reach the server. Check your connection and try again.');
+      return;
+    }
     setSending(false);
     setSent(true);
   }
@@ -51,6 +73,7 @@ export default function ForgotPasswordPage() {
             >
               {sending ? 'Sending…' : 'Send request'}
             </button>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
           </form>
         </>
       )}

@@ -76,7 +76,7 @@ export async function POST(request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Palengke <onboarding@resend.dev>',
+          from: 'Palengke <noreply@palengkeapp.com>',
           to: [REPORT_TO_EMAIL],
           subject: `Palengke problem report from ${username || 'a user'}`,
           text: `From: ${username || 'unknown user'} (user id ${userId})\n\n${message}`,

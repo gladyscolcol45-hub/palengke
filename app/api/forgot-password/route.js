@@ -18,7 +18,7 @@ async function sendAdminEmail(username, email) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Palengke <onboarding@resend.dev>',
+        from: 'Palengke <noreply@palengkeapp.com>',
         to: [ADMIN_EMAIL],
         subject: `Palengke password reset request from ${username}`,
         text: `${username} requested a password reset.\nEmail on file: ${email || 'none'}\n\nApprove it here (this will also try to email them the temp password automatically): https://palengke-ten.vercel.app/admin/password-resets`,
