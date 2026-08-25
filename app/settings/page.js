@@ -146,6 +146,22 @@ export default function SettingsPage() {
       });
     }
 
+    // Best-effort: also email the admin so it's not only an in-app
+    // notification, and email the seller a confirmation their request went
+    // through. The request itself is already saved above either way.
+    const sessionResult = await supabase.auth.getSession();
+    const accessToken = sessionResult.data.session ? sessionResult.data.session.access_token : null;
+    if (accessToken) {
+      try {
+        await fetch('/api/verification-request', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + accessToken },
+        });
+      } catch (e) {
+        // Ignore — the request row and in-app notification already succeeded.
+      }
+    }
+
     setVerificationRequest(insertResult.data);
     setRequestingVerification(false);
   }
