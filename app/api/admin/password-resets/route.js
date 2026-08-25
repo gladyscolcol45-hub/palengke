@@ -19,7 +19,7 @@ async function emailTempPasswordToUser(email, username, tempPassword) {
         from: 'Palengke <noreply@palengkeapp.com>',
         to: [email],
         subject: 'Your Palengke password has been reset',
-        text: `Hi ${username},\n\nYour Palengke password was reset. Here is a temporary password:\n\n${tempPassword}\n\nLog in at https://palengke-ten.vercel.app/login with your username and this temporary password, then set your own password from Settings right away.\n\nIf you didn't request this, contact us at palengke.app23@gmail.com.`,
+        text: `Hi ${username},\n\nYour Palengke password was reset. Here is a temporary password:\n\n${tempPassword}\n\nLog in at https://palengkeapp.com/login with your username and this temporary password, then set your own password from Settings right away.\n\nIf you didn't request this, contact us at palengke.app23@gmail.com.`,
       }),
     });
     return response.ok;
