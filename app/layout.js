@@ -12,6 +12,10 @@ export const metadata = {
   title: 'Palengke',
   description: 'Buy and sell in your neighborhood',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/logo-192.png',
+    apple: '/logo-192.png',
+  },
 };
 
 export const viewport = {
