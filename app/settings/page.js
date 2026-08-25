@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const [verifiedUntil, setVerifiedUntil] = useState(null);
   const [verificationRequest, setVerificationRequest] = useState(null);
   const [requestingVerification, setRequestingVerification] = useState(false);
+  const [paymentProofFile, setPaymentProofFile] = useState(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState(null);
+  const [paymentProofError, setPaymentProofError] = useState(null);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
@@ -114,14 +117,46 @@ export default function SettingsPage() {
     }
   }
 
+  function handlePaymentProofChange(e) {
+    const file = (e.target.files || [])[0];
+    e.target.value = ''; // lets them pick the same file again later if they remove it
+    if (!file) return;
+    setPaymentProofError(null);
+    setPaymentProofFile(file);
+    setPaymentProofPreview(URL.createObjectURL(file));
+  }
+
+  function handleRemovePaymentProof() {
+    setPaymentProofFile(null);
+    setPaymentProofPreview(null);
+  }
+
   async function handleRequestVerification() {
     if (!userId) return;
+
+    if (!paymentProofFile) {
+      setPaymentProofError('Please attach a screenshot of your GCash payment first.');
+      return;
+    }
+
+    setPaymentProofError(null);
     setRequestingVerification(true);
     const supabase = createClient();
 
+    const proofPath = `${userId}/${Date.now()}-${paymentProofFile.name}`;
+    const uploadResult = await supabase.storage
+      .from('payment-proofs')
+      .upload(proofPath, paymentProofFile);
+
+    if (uploadResult.error) {
+      setRequestingVerification(false);
+      setPaymentProofError('Could not upload your screenshot. Please try again.');
+      return;
+    }
+
     const insertResult = await supabase
       .from('verification_requests')
-      .insert({ user_id: userId, status: 'pending' })
+      .insert({ user_id: userId, status: 'pending', payment_proof_path: proofPath })
       .select()
       .single();
 
@@ -275,9 +310,35 @@ export default function SettingsPage() {
                 <div className="mt-3 bg-white border border-stone-200 rounded-md p-3 text-sm">
                   <p className="font-medium text-stone-700">Step 1 &mdash; Send ₱99 via GCash</p>
                   <p className="text-stone-500 mt-0.5">GCash: Gladys C. &mdash; 0963 307 7826</p>
-                  <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Tap the button below</p>
+                  <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>
+
+                  {paymentProofPreview ? (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <img
+                        src={paymentProofPreview}
+                        alt="Payment screenshot"
+                        className="w-14 h-14 rounded-md object-cover border border-stone-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemovePaymentProof}
+                        className="text-xs text-stone-500 hover:text-red-600 underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="mt-1.5 inline-block text-sm text-green-700 hover:underline cursor-pointer">
+                      Choose screenshot...
+                      <input type="file" accept="image/*" onChange={handlePaymentProofChange} className="hidden" />
+                    </label>
+                  )}
+
+                  <p className="font-medium text-stone-700 mt-3">Step 3 &mdash; Tap the button below</p>
                   <p className="text-stone-500 mt-0.5">The admin will confirm your payment and activate your badge, usually within a day.</p>
                 </div>
+
+                {paymentProofError && <p className="text-red-600 text-sm mt-2">{paymentProofError}</p>}
 
                 <button
                   onClick={handleRequestVerification}

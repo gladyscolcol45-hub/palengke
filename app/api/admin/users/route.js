@@ -35,7 +35,7 @@ async function requireAdmin(request) {
 async function loadPendingRequests(supabaseAdmin) {
   const pendingResult = await supabaseAdmin
     .from('verification_requests')
-    .select('id, user_id, created_at')
+    .select('id, user_id, created_at, payment_proof_path')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
 
@@ -51,12 +51,24 @@ async function loadPendingRequests(supabaseAdmin) {
       .single();
 
     const p = profileResult.data;
+
+    // The bucket is private, so this admin page needs a fresh signed link
+    // each time it loads — a plain public URL wouldn't work here.
+    let paymentProofUrl = null;
+    if (row.payment_proof_path) {
+      const signedResult = await supabaseAdmin.storage
+        .from('payment-proofs')
+        .createSignedUrl(row.payment_proof_path, 3600);
+      paymentProofUrl = signedResult.data ? signedResult.data.signedUrl : null;
+    }
+
     pendingRequests.push({
       requestId: row.id,
       userId: row.user_id,
       createdAt: row.created_at,
       username: p ? p.username : null,
       fullName: p ? p.full_name : null,
+      paymentProofUrl,
     });
   }
 
@@ -187,6 +199,14 @@ export async function POST(request) {
       const paths = filesResult.data.map((f) => `${userId}/${f.name}`);
       await supabaseAdmin.storage.from('listing-photos').remove(paths);
     }
+
+    const proofFilesResult = await supabaseAdmin.storage.from('payment-proofs').list(userId);
+    if (proofFilesResult.data && proofFilesResult.data.length > 0) {
+      const proofPaths = proofFilesResult.data.map((f) => `${userId}/${f.name}`);
+      await supabaseAdmin.storage.from('payment-proofs').remove(proofPaths);
+    }
+
+    await supabaseAdmin.from('verification_requests').delete().eq('user_id', userId);
 
     await supabaseAdmin.from('profiles').delete().eq('id', userId);
 

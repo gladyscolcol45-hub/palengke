@@ -331,10 +331,24 @@ export default function AdminUsersPage() {
                 key={r.requestId}
                 className="flex items-center justify-between border border-green-200 bg-green-50 rounded-lg p-3"
               >
-                <div>
-                  <p className="font-medium">{r.username || 'Unnamed user'}</p>
-                  {r.fullName && <p className="text-sm text-stone-500">{r.fullName}</p>}
-                  <p className="text-xs text-stone-400 mt-0.5">Requested {formatDate(r.createdAt)}</p>
+                <div className="flex items-center gap-3">
+                  {r.paymentProofUrl && (
+                    <a href={r.paymentProofUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                      <img
+                        src={r.paymentProofUrl}
+                        alt="Payment screenshot"
+                        className="w-14 h-14 rounded-md object-cover border border-stone-200 hover:opacity-80"
+                      />
+                    </a>
+                  )}
+                  <div>
+                    <p className="font-medium">{r.username || 'Unnamed user'}</p>
+                    {r.fullName && <p className="text-sm text-stone-500">{r.fullName}</p>}
+                    <p className="text-xs text-stone-400 mt-0.5">Requested {formatDate(r.createdAt)}</p>
+                    {!r.paymentProofUrl && (
+                      <p className="text-xs text-amber-600 mt-0.5">No screenshot attached</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
