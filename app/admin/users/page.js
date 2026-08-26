@@ -344,7 +344,9 @@ export default function AdminUsersPage() {
                   <div>
                     <p className="font-medium">{r.username || 'Unnamed user'}</p>
                     {r.fullName && <p className="text-sm text-stone-500">{r.fullName}</p>}
-                    <p className="text-xs text-stone-400 mt-0.5">Requested {formatDate(r.createdAt)}</p>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Requested {formatDate(r.createdAt)} &middot; via {r.paymentMethod === 'gotyme' ? 'GoTyme Bank' : 'GCash'}
+                    </p>
                     {!r.paymentProofUrl && (
                       <p className="text-xs text-amber-600 mt-0.5">No screenshot attached</p>
                     )}

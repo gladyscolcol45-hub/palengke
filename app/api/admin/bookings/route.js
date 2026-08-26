@@ -35,7 +35,7 @@ async function requireAdmin(request) {
 async function loadPendingReviews(supabaseAdmin) {
   const pendingResult = await supabaseAdmin
     .from('bookings')
-    .select('id, listing_id, seller_id, commission_amount, created_at, commission_proof_path')
+    .select('id, listing_id, seller_id, commission_amount, created_at, commission_proof_path, commission_payment_method')
     .eq('commission_status', 'pending_review')
     .order('created_at', { ascending: true });
 
@@ -75,6 +75,7 @@ async function loadPendingReviews(supabaseAdmin) {
       username: p ? p.username : null,
       fullName: p ? p.full_name : null,
       commissionAmount: row.commission_amount,
+      paymentMethod: row.commission_payment_method || 'gcash',
       createdAt: row.created_at,
       paymentProofUrl,
     });

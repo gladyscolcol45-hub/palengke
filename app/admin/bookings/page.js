@@ -138,7 +138,9 @@ export default function AdminBookingsPage() {
                     <p className="text-sm text-stone-500">
                       {r.username || r.fullName || 'Unnamed user'} owes ₱{Number(r.commissionAmount || 0).toLocaleString()}
                     </p>
-                    <p className="text-xs text-stone-400 mt-0.5">Submitted {formatDate(r.createdAt)}</p>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Submitted {formatDate(r.createdAt)} &middot; via {r.paymentMethod === 'gotyme' ? 'GoTyme Bank' : 'GCash'}
+                    </p>
                     {!r.paymentProofUrl && (
                       <p className="text-xs text-amber-600 mt-0.5">No screenshot attached</p>
                     )}

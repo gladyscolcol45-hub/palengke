@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import { PAYMENT_METHODS, getPaymentMethod } from '@/lib/paymentMethods';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [paymentProofFile, setPaymentProofFile] = useState(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState(null);
   const [paymentProofError, setPaymentProofError] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('gcash');
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
@@ -135,7 +137,7 @@ export default function SettingsPage() {
     if (!userId) return;
 
     if (!paymentProofFile) {
-      setPaymentProofError('Please attach a screenshot of your GCash payment first.');
+      setPaymentProofError('Please attach a screenshot of your payment first.');
       return;
     }
 
@@ -156,7 +158,7 @@ export default function SettingsPage() {
 
     const insertResult = await supabase
       .from('verification_requests')
-      .insert({ user_id: userId, status: 'pending', payment_proof_path: proofPath })
+      .insert({ user_id: userId, status: 'pending', payment_proof_path: proofPath, payment_method: paymentMethod })
       .select()
       .single();
 
@@ -308,8 +310,26 @@ export default function SettingsPage() {
                 )}
 
                 <div className="mt-3 bg-white border border-stone-200 rounded-md p-3 text-sm">
-                  <p className="font-medium text-stone-700">Step 1 &mdash; Send ₱99 via GCash</p>
-                  <p className="text-stone-500 mt-0.5">GCash: Gladys C. &mdash; 0963 307 7826</p>
+                  <p className="font-medium text-stone-700">Step 1 &mdash; Send ₱99</p>
+                  <div className="flex gap-2 mt-1.5 mb-2">
+                    {PAYMENT_METHODS.map((m) => (
+                      <button
+                        key={m.value}
+                        type="button"
+                        onClick={() => setPaymentMethod(m.value)}
+                        className={`text-xs px-3 py-1.5 rounded-full border ${
+                          paymentMethod === m.value
+                            ? 'bg-green-700 text-white border-green-700'
+                            : 'bg-white text-stone-600 border-stone-300'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                  {getPaymentMethod(paymentMethod).lines.map((line) => (
+                    <p key={line} className="text-stone-500">{line}</p>
+                  ))}
                   <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>
 
                   {paymentProofPreview ? (

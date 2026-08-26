@@ -37,7 +37,7 @@ async function requireAdmin(request) {
 async function loadPendingRequests(supabaseAdmin) {
   const pendingResult = await supabaseAdmin
     .from('boost_requests')
-    .select('id, listing_id, user_id, created_at, payment_proof_path')
+    .select('id, listing_id, user_id, created_at, payment_proof_path, payment_method')
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
 
@@ -77,6 +77,7 @@ async function loadPendingRequests(supabaseAdmin) {
       createdAt: row.created_at,
       username: p ? p.username : null,
       fullName: p ? p.full_name : null,
+      paymentMethod: row.payment_method || 'gcash',
       paymentProofUrl,
     });
   }

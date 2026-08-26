@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import MapDisplay from '@/components/DynamicMapDisplay';
+import { PAYMENT_METHODS, getPaymentMethod } from '@/lib/paymentMethods';
 
 const REPORT_REASONS = [
   'Scam or fraud',
@@ -41,6 +42,7 @@ export default function ListingDetailPage() {
   const [boostProofFile, setBoostProofFile] = useState(null);
   const [boostProofPreview, setBoostProofPreview] = useState(null);
   const [boostProofError, setBoostProofError] = useState(null);
+  const [boostPaymentMethod, setBoostPaymentMethod] = useState('gcash');
 
   // Bookings (Resorts & Venues)
   const [bookings, setBookings] = useState([]);
@@ -57,6 +59,7 @@ export default function ListingDetailPage() {
   const [commissionProofPreviews, setCommissionProofPreviews] = useState({});
   const [commissionErrors, setCommissionErrors] = useState({});
   const [submittingCommissionId, setSubmittingCommissionId] = useState(null);
+  const [commissionPaymentMethods, setCommissionPaymentMethods] = useState({});
 
   useEffect(() => {
     const supabase = createClient();
@@ -267,7 +270,7 @@ export default function ListingDetailPage() {
   async function handleRequestBoost() {
     if (!currentUserId || !listing) return;
     if (!boostProofFile) {
-      setBoostProofError('Please attach a screenshot of your GCash payment first.');
+      setBoostProofError('Please attach a screenshot of your payment first.');
       return;
     }
 
@@ -286,7 +289,13 @@ export default function ListingDetailPage() {
 
     const insertResult = await supabase
       .from('boost_requests')
-      .insert({ listing_id: listing.id, user_id: currentUserId, status: 'pending', payment_proof_path: proofPath })
+      .insert({
+        listing_id: listing.id,
+        user_id: currentUserId,
+        status: 'pending',
+        payment_proof_path: proofPath,
+        payment_method: boostPaymentMethod,
+      })
       .select()
       .single();
 
@@ -445,7 +454,7 @@ export default function ListingDetailPage() {
   async function handleSubmitCommissionProof(bookingId) {
     const file = commissionProofFiles[bookingId];
     if (!file) {
-      setCommissionErrors((prev) => ({ ...prev, [bookingId]: 'Please attach a screenshot of your GCash payment first.' }));
+      setCommissionErrors((prev) => ({ ...prev, [bookingId]: 'Please attach a screenshot of your payment first.' }));
       return;
     }
 
@@ -461,9 +470,10 @@ export default function ListingDetailPage() {
       return;
     }
 
+    const method = commissionPaymentMethods[bookingId] || 'gcash';
     const { data, error } = await supabase
       .from('bookings')
-      .update({ commission_status: 'pending_review', commission_proof_path: proofPath })
+      .update({ commission_status: 'pending_review', commission_proof_path: proofPath, commission_payment_method: method })
       .eq('id', bookingId)
       .select()
       .single();
@@ -887,7 +897,28 @@ export default function ListingDetailPage() {
                         <p className="text-stone-500 mt-1">Your payment is being reviewed by the admin.</p>
                       ) : (
                         <>
-                          <p className="text-stone-500 mt-0.5">Step 1 &mdash; Send it via GCash: Gladys C. &mdash; 0963 307 7826</p>
+                          <p className="text-stone-700 mt-0.5">Step 1 &mdash; Send it</p>
+                          <div className="flex gap-2 mt-1.5 mb-2">
+                            {PAYMENT_METHODS.map((m) => (
+                              <button
+                                key={m.value}
+                                type="button"
+                                onClick={() =>
+                                  setCommissionPaymentMethods((prev) => ({ ...prev, [b.id]: m.value }))
+                                }
+                                className={`text-xs px-3 py-1.5 rounded-full border ${
+                                  (commissionPaymentMethods[b.id] || 'gcash') === m.value
+                                    ? 'bg-orange-700 text-white border-orange-700'
+                                    : 'bg-white text-stone-600 border-stone-300'
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                          {getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').lines.map((line) => (
+                            <p key={line} className="text-stone-500">{line}</p>
+                          ))}
                           <p className="font-medium text-stone-700 mt-2">Step 2 &mdash; Attach your payment screenshot</p>
 
                           {commissionProofPreviews[b.id] ? (
@@ -978,8 +1009,26 @@ export default function ListingDetailPage() {
                   )}
 
                   <div className="mt-3 bg-white border border-stone-200 rounded-md p-3 text-sm">
-                    <p className="font-medium text-stone-700">Step 1 &mdash; Send ₱49 via GCash</p>
-                    <p className="text-stone-500 mt-0.5">GCash: Gladys C. &mdash; 0963 307 7826</p>
+                    <p className="font-medium text-stone-700">Step 1 &mdash; Send ₱49</p>
+                    <div className="flex gap-2 mt-1.5 mb-2">
+                      {PAYMENT_METHODS.map((m) => (
+                        <button
+                          key={m.value}
+                          type="button"
+                          onClick={() => setBoostPaymentMethod(m.value)}
+                          className={`text-xs px-3 py-1.5 rounded-full border ${
+                            boostPaymentMethod === m.value
+                              ? 'bg-orange-700 text-white border-orange-700'
+                              : 'bg-white text-stone-600 border-stone-300'
+                          }`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                    {getPaymentMethod(boostPaymentMethod).lines.map((line) => (
+                      <p key={line} className="text-stone-500">{line}</p>
+                    ))}
                     <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>
 
                     {boostProofPreview ? (
