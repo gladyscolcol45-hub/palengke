@@ -548,7 +548,7 @@ export default function ListingDetailPage() {
         )}
         {listing.status === 'in_use' && (
           <span className="absolute top-3 left-3 bg-red-700 text-white text-sm font-bold px-3 py-1 rounded">
-            IN USE
+            OCCUPIED
           </span>
         )}
         {!isOwner && (
@@ -648,7 +648,7 @@ export default function ListingDetailPage() {
                 {[
                   { value: 'active', label: 'Available' },
                   { value: 'reserved', label: 'Reserved' },
-                  { value: 'in_use', label: 'In Use' },
+                  { value: 'in_use', label: 'Occupied' },
                 ].map((opt) => (
                   <button
                     key={opt.value}
@@ -703,7 +703,7 @@ export default function ListingDetailPage() {
 
             {isResort && !myBookingRequest && listing.status !== 'active' && listing.status !== 'sold' && listing.status !== 'removed' && (
               <span className="text-sm text-stone-500">
-                {listing.status === 'reserved' ? 'Currently reserved' : 'Currently in use'}
+                {listing.status === 'reserved' ? 'Currently reserved' : 'Currently occupied'}
               </span>
             )}
 
