@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import MapDisplay from '@/components/DynamicMapDisplay';
 import { PAYMENT_METHODS, getPaymentMethod } from '@/lib/paymentMethods';
+import QrLightbox from '@/components/QrLightbox';
 
 const REPORT_REASONS = [
   'Scam or fraud',
@@ -43,6 +44,7 @@ export default function ListingDetailPage() {
   const [boostProofPreview, setBoostProofPreview] = useState(null);
   const [boostProofError, setBoostProofError] = useState(null);
   const [boostPaymentMethod, setBoostPaymentMethod] = useState('gcash');
+  const [boostQrOpen, setBoostQrOpen] = useState(false);
 
   // Bookings (Resorts & Venues)
   const [bookings, setBookings] = useState([]);
@@ -60,6 +62,7 @@ export default function ListingDetailPage() {
   const [commissionErrors, setCommissionErrors] = useState({});
   const [submittingCommissionId, setSubmittingCommissionId] = useState(null);
   const [commissionPaymentMethods, setCommissionPaymentMethods] = useState({});
+  const [openCommissionQrId, setOpenCommissionQrId] = useState(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -917,10 +920,9 @@ export default function ListingDetailPage() {
                             ))}
                           </div>
                           <div className="flex items-start gap-3">
-                            <a
-                              href={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').qrImage}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => setOpenCommissionQrId(b.id)}
                               className="flex-shrink-0"
                             >
                               <img
@@ -928,7 +930,7 @@ export default function ListingDetailPage() {
                                 alt={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').label + ' QR code'}
                                 className="w-28 h-28 object-contain rounded-md border border-stone-200"
                               />
-                            </a>
+                            </button>
                             <div>
                               {getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').lines.map((line) => (
                                 <p key={line} className="text-stone-500">{line}</p>
@@ -1044,10 +1046,9 @@ export default function ListingDetailPage() {
                       ))}
                     </div>
                     <div className="flex items-start gap-3">
-                      <a
-                        href={getPaymentMethod(boostPaymentMethod).qrImage}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => setBoostQrOpen(true)}
                         className="flex-shrink-0"
                       >
                         <img
@@ -1055,7 +1056,7 @@ export default function ListingDetailPage() {
                           alt={getPaymentMethod(boostPaymentMethod).label + ' QR code'}
                           className="w-28 h-28 object-contain rounded-md border border-stone-200"
                         />
-                      </a>
+                      </button>
                       <div>
                         {getPaymentMethod(boostPaymentMethod).lines.map((line) => (
                           <p key={line} className="text-stone-500">{line}</p>
@@ -1162,6 +1163,26 @@ export default function ListingDetailPage() {
           </div>
         </div>
       )}
+
+      {boostQrOpen && (
+        <QrLightbox
+          src={getPaymentMethod(boostPaymentMethod).qrImage}
+          alt={getPaymentMethod(boostPaymentMethod).label + ' QR code'}
+          onClose={() => setBoostQrOpen(false)}
+        />
+      )}
+
+      {openCommissionQrId && (() => {
+        const openBooking = bookings.find((bk) => bk.id === openCommissionQrId);
+        const method = getPaymentMethod(commissionPaymentMethods[openCommissionQrId] || 'gcash');
+        return openBooking ? (
+          <QrLightbox
+            src={method.qrImage}
+            alt={method.label + ' QR code'}
+            onClose={() => setOpenCommissionQrId(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import { PAYMENT_METHODS, getPaymentMethod } from '@/lib/paymentMethods';
+import QrLightbox from '@/components/QrLightbox';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const [paymentProofPreview, setPaymentProofPreview] = useState(null);
   const [paymentProofError, setPaymentProofError] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('gcash');
+  const [qrLightboxOpen, setQrLightboxOpen] = useState(false);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
@@ -328,10 +330,9 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   <div className="flex items-start gap-3">
-                    <a
-                      href={getPaymentMethod(paymentMethod).qrImage}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setQrLightboxOpen(true)}
                       className="flex-shrink-0"
                     >
                       <img
@@ -339,7 +340,7 @@ export default function SettingsPage() {
                         alt={getPaymentMethod(paymentMethod).label + ' QR code'}
                         className="w-28 h-28 object-contain rounded-md border border-stone-200"
                       />
-                    </a>
+                    </button>
                     <div>
                       {getPaymentMethod(paymentMethod).lines.map((line) => (
                         <p key={line} className="text-stone-500">{line}</p>
@@ -478,6 +479,13 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {qrLightboxOpen && (
+        <QrLightbox
+          src={getPaymentMethod(paymentMethod).qrImage}
+          alt={getPaymentMethod(paymentMethod).label + ' QR code'}
+          onClose={() => setQrLightboxOpen(false)}
+        />
+      )}
     </div>
   );
 }
