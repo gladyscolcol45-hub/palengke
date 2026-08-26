@@ -916,9 +916,18 @@ export default function ListingDetailPage() {
                               </button>
                             ))}
                           </div>
-                          {getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').lines.map((line) => (
-                            <p key={line} className="text-stone-500">{line}</p>
-                          ))}
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').qrImage}
+                              alt={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').label + ' QR code'}
+                              className="w-28 h-28 object-contain rounded-md border border-stone-200 flex-shrink-0"
+                            />
+                            <div>
+                              {getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').lines.map((line) => (
+                                <p key={line} className="text-stone-500">{line}</p>
+                              ))}
+                            </div>
+                          </div>
                           <p className="font-medium text-stone-700 mt-2">Step 2 &mdash; Attach your payment screenshot</p>
 
                           {commissionProofPreviews[b.id] ? (
@@ -1026,9 +1035,18 @@ export default function ListingDetailPage() {
                         </button>
                       ))}
                     </div>
-                    {getPaymentMethod(boostPaymentMethod).lines.map((line) => (
-                      <p key={line} className="text-stone-500">{line}</p>
-                    ))}
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={getPaymentMethod(boostPaymentMethod).qrImage}
+                        alt={getPaymentMethod(boostPaymentMethod).label + ' QR code'}
+                        className="w-28 h-28 object-contain rounded-md border border-stone-200 flex-shrink-0"
+                      />
+                      <div>
+                        {getPaymentMethod(boostPaymentMethod).lines.map((line) => (
+                          <p key={line} className="text-stone-500">{line}</p>
+                        ))}
+                      </div>
+                    </div>
                     <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>
 
                     {boostProofPreview ? (

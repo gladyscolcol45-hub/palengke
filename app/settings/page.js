@@ -327,9 +327,18 @@ export default function SettingsPage() {
                       </button>
                     ))}
                   </div>
-                  {getPaymentMethod(paymentMethod).lines.map((line) => (
-                    <p key={line} className="text-stone-500">{line}</p>
-                  ))}
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={getPaymentMethod(paymentMethod).qrImage}
+                      alt={getPaymentMethod(paymentMethod).label + ' QR code'}
+                      className="w-28 h-28 object-contain rounded-md border border-stone-200 flex-shrink-0"
+                    />
+                    <div>
+                      {getPaymentMethod(paymentMethod).lines.map((line) => (
+                        <p key={line} className="text-stone-500">{line}</p>
+                      ))}
+                    </div>
+                  </div>
                   <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>
 
                   {paymentProofPreview ? (
