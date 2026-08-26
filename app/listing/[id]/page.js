@@ -935,7 +935,7 @@ export default function ListingDetailPage() {
                               {getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').lines.map((line) => (
                                 <p key={line} className="text-stone-500">{line}</p>
                               ))}
-                              <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge</p>
+                              <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge & save it</p>
                             </div>
                           </div>
                           <p className="font-medium text-stone-700 mt-2">Step 2 &mdash; Attach your payment screenshot</p>
@@ -1061,7 +1061,7 @@ export default function ListingDetailPage() {
                         {getPaymentMethod(boostPaymentMethod).lines.map((line) => (
                           <p key={line} className="text-stone-500">{line}</p>
                         ))}
-                        <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge</p>
+                        <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge & save it</p>
                       </div>
                     </div>
                     <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>

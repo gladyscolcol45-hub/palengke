@@ -345,7 +345,7 @@ export default function SettingsPage() {
                       {getPaymentMethod(paymentMethod).lines.map((line) => (
                         <p key={line} className="text-stone-500">{line}</p>
                       ))}
-                      <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge</p>
+                      <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge & save it</p>
                     </div>
                   </div>
                   <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>

@@ -20,12 +20,20 @@ export default function QrLightbox({ src, alt, onClose }) {
       >
         &times;
       </button>
-      <img
-        src={src}
-        alt={alt}
+      <div
+        className="flex flex-col items-center max-w-full max-h-full"
         onClick={(e) => e.stopPropagation()}
-        className="max-w-full max-h-full object-contain rounded-lg bg-white"
-      />
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="max-w-full max-h-[75vh] object-contain rounded-lg bg-white"
+        />
+        <p className="text-white text-sm text-center mt-4 max-w-xs">
+          Press and hold the QR to save it, then in your GCash or GoTyme app choose
+          <span className="font-semibold"> Scan QR &rarr; Upload from Gallery</span> to pay.
+        </p>
+      </div>
     </div>
   );
 }
