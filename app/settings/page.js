@@ -328,15 +328,23 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   <div className="flex items-start gap-3">
-                    <img
-                      src={getPaymentMethod(paymentMethod).qrImage}
-                      alt={getPaymentMethod(paymentMethod).label + ' QR code'}
-                      className="w-28 h-28 object-contain rounded-md border border-stone-200 flex-shrink-0"
-                    />
+                    <a
+                      href={getPaymentMethod(paymentMethod).qrImage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0"
+                    >
+                      <img
+                        src={getPaymentMethod(paymentMethod).qrImage}
+                        alt={getPaymentMethod(paymentMethod).label + ' QR code'}
+                        className="w-28 h-28 object-contain rounded-md border border-stone-200"
+                      />
+                    </a>
                     <div>
                       {getPaymentMethod(paymentMethod).lines.map((line) => (
                         <p key={line} className="text-stone-500">{line}</p>
                       ))}
+                      <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge</p>
                     </div>
                   </div>
                   <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>

@@ -917,15 +917,23 @@ export default function ListingDetailPage() {
                             ))}
                           </div>
                           <div className="flex items-start gap-3">
-                            <img
-                              src={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').qrImage}
-                              alt={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').label + ' QR code'}
-                              className="w-28 h-28 object-contain rounded-md border border-stone-200 flex-shrink-0"
-                            />
+                            <a
+                              href={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').qrImage}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-shrink-0"
+                            >
+                              <img
+                                src={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').qrImage}
+                                alt={getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').label + ' QR code'}
+                                className="w-28 h-28 object-contain rounded-md border border-stone-200"
+                              />
+                            </a>
                             <div>
                               {getPaymentMethod(commissionPaymentMethods[b.id] || 'gcash').lines.map((line) => (
                                 <p key={line} className="text-stone-500">{line}</p>
                               ))}
+                              <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge</p>
                             </div>
                           </div>
                           <p className="font-medium text-stone-700 mt-2">Step 2 &mdash; Attach your payment screenshot</p>
@@ -1036,15 +1044,23 @@ export default function ListingDetailPage() {
                       ))}
                     </div>
                     <div className="flex items-start gap-3">
-                      <img
-                        src={getPaymentMethod(boostPaymentMethod).qrImage}
-                        alt={getPaymentMethod(boostPaymentMethod).label + ' QR code'}
-                        className="w-28 h-28 object-contain rounded-md border border-stone-200 flex-shrink-0"
-                      />
+                      <a
+                        href={getPaymentMethod(boostPaymentMethod).qrImage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                      >
+                        <img
+                          src={getPaymentMethod(boostPaymentMethod).qrImage}
+                          alt={getPaymentMethod(boostPaymentMethod).label + ' QR code'}
+                          className="w-28 h-28 object-contain rounded-md border border-stone-200"
+                        />
+                      </a>
                       <div>
                         {getPaymentMethod(boostPaymentMethod).lines.map((line) => (
                           <p key={line} className="text-stone-500">{line}</p>
                         ))}
+                        <p className="text-xs text-stone-400 mt-1">Tap the QR to enlarge</p>
                       </div>
                     </div>
                     <p className="font-medium text-stone-700 mt-3">Step 2 &mdash; Attach your payment screenshot</p>
