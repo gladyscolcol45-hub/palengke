@@ -31,7 +31,7 @@ export default function HomePage() {
       let query = supabase
         .from('listings')
         .select('*')
-        .in('status', ['active', 'sold'])
+        .in('status', ['active', 'sold', 'reserved', 'in_use'])
         .order('created_at', { ascending: false });
 
       if (activeCategory) query = query.eq('category_id', activeCategory);
@@ -39,7 +39,20 @@ export default function HomePage() {
 
       const { data: rows, error } = await query;
       if (error) console.error(error);
-      setListings(rows || []);
+
+      // Boosted listings (paid to be featured, boosted_until still in the
+      // future) show first; everything else keeps the normal newest-first
+      // order.
+      const now = new Date();
+      const sortedRows = (rows || []).slice().sort((a, b) => {
+        const aBoosted = a.boosted_until && new Date(a.boosted_until) > now;
+        const bBoosted = b.boosted_until && new Date(b.boosted_until) > now;
+        if (aBoosted && !bBoosted) return -1;
+        if (!aBoosted && bBoosted) return 1;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      setListings(sortedRows);
       setLoading(false);
     }
 

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabaseClient';
 import { geocodeAddress } from '@/lib/geocode';
 import LocationPicker from '@/components/DynamicLocationPicker';
 import { getCategoryIcon } from '@/lib/categoryIcons';
+import { RESORT_AMENITIES } from '@/lib/resortAmenities';
 
 const MAX_PHOTOS = 5;
 
@@ -17,6 +18,7 @@ export default function EditListingPage() {
     title: '', description: '', price: '', unit: 'each',
     category_id: '', barangay: '', city: '',
     latitude: null, longitude: null,
+    max_guests: '', amenities: [], house_rules: '',
   });
   const [locationSource, setLocationSource] = useState(null); // null | 'auto' | 'manual'
   const [geocoding, setGeocoding] = useState(false);
@@ -67,6 +69,9 @@ export default function EditListingPage() {
         city: listing.city || '',
         latitude: listing.latitude || null,
         longitude: listing.longitude || null,
+        max_guests: listing.max_guests != null ? String(listing.max_guests) : '',
+        amenities: listing.amenities || [],
+        house_rules: listing.house_rules || '',
       });
       if (listing.latitude != null && listing.longitude != null) {
         setLocationSource('manual');
@@ -103,6 +108,16 @@ export default function EditListingPage() {
   function handleLocationChange(lat, lng, source) {
     setForm({ ...form, latitude: lat, longitude: lng });
     setLocationSource(source);
+  }
+
+  function handleToggleAmenity(amenity) {
+    setForm((prev) => {
+      const has = prev.amenities.includes(amenity);
+      return {
+        ...prev,
+        amenities: has ? prev.amenities.filter((a) => a !== amenity) : [...prev.amenities, amenity],
+      };
+    });
   }
 
   function handleRemoveExistingPhoto(index) {
@@ -176,6 +191,9 @@ export default function EditListingPage() {
       latitude,
       longitude,
       photo_urls: [...existingPhotos, ...uploadedUrls],
+      max_guests: isResort && form.max_guests ? parseInt(form.max_guests, 10) : null,
+      amenities: isResort ? form.amenities : [],
+      house_rules: isResort ? form.house_rules || null : null,
     };
 
     const { error: updateError } = await supabase
@@ -190,6 +208,9 @@ export default function EditListingPage() {
 
   if (loading) return <p className="text-stone-400 text-sm">Loading…</p>;
   if (notAllowed) return <p className="text-red-600 text-sm">You can only edit your own listings.</p>;
+
+  const selectedCategory = categories.find((c) => String(c.id) === String(form.category_id));
+  const isResort = !!selectedCategory && selectedCategory.slug === 'resorts-venues';
 
   return (
     <div className="max-w-lg mx-auto py-8">
@@ -237,6 +258,54 @@ export default function EditListingPage() {
             <option key={c.id} value={c.id}>{getCategoryIcon(c.slug)} {c.name}</option>
           ))}
         </select>
+
+        {isResort && (
+          <div className="border border-stone-200 rounded-md p-3 flex flex-col gap-3">
+            <p className="text-sm font-medium text-stone-700">Resort / venue details</p>
+
+            <input
+              type="number"
+              min="1"
+              placeholder="Max number of guests (optional)"
+              value={form.max_guests}
+              onChange={(e) => setForm({ ...form, max_guests: e.target.value })}
+              className="border border-stone-300 rounded-md px-3 py-2"
+            />
+
+            <div>
+              <p className="text-sm text-stone-600 mb-1">Amenities</p>
+              <div className="flex flex-wrap gap-2">
+                {RESORT_AMENITIES.map((a) => (
+                  <label
+                    key={a}
+                    className={`text-sm px-3 py-1.5 rounded-full border cursor-pointer ${
+                      form.amenities.includes(a)
+                        ? 'bg-green-700 text-white border-green-700'
+                        : 'bg-white text-stone-600 border-stone-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.amenities.includes(a)}
+                      onChange={() => handleToggleAmenity(a)}
+                      className="hidden"
+                    />
+                    {a}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <textarea
+              placeholder="House rules / check-in & check-out notes (optional)"
+              value={form.house_rules}
+              onChange={(e) => setForm({ ...form, house_rules: e.target.value })}
+              className="border border-stone-300 rounded-md px-3 py-2"
+              rows={2}
+            />
+          </div>
+        )}
+
         <div className="flex gap-2">
           <input
             placeholder="Barangay"

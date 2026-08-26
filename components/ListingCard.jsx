@@ -43,6 +43,7 @@ export default function ListingCard({ listing }) {
   }
 
   const isOwnListing = userId && userId === listing.seller_id;
+  const isBoosted = listing.boosted_until && new Date(listing.boosted_until) > new Date();
 
   return (
     <a
@@ -52,13 +53,34 @@ export default function ListingCard({ listing }) {
       <div className="relative aspect-square bg-stone-100 flex items-center justify-center overflow-hidden">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt={listing.title} className={`w-full h-full object-cover ${listing.status === 'sold' ? 'opacity-50' : ''}`} />
+          <img
+            src={photo}
+            alt={listing.title}
+            className={`w-full h-full object-cover ${
+              listing.status === 'sold' || listing.status === 'reserved' || listing.status === 'in_use' ? 'opacity-50' : ''
+            }`}
+          />
         ) : (
           <span className="text-stone-400 text-sm">No photo</span>
         )}
         {listing.status === 'sold' && (
           <span className="absolute top-2 left-2 bg-stone-900 text-white text-xs font-bold px-2 py-1 rounded">
             SOLD
+          </span>
+        )}
+        {listing.status === 'reserved' && (
+          <span className="absolute top-2 left-2 bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded">
+            RESERVED
+          </span>
+        )}
+        {listing.status === 'in_use' && (
+          <span className="absolute top-2 left-2 bg-red-700 text-white text-xs font-bold px-2 py-1 rounded">
+            IN USE
+          </span>
+        )}
+        {listing.status === 'active' && isBoosted && (
+          <span className="absolute top-2 left-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-0.5">
+            ⚡ Boosted
           </span>
         )}
         {!isOwnListing && userId && (
